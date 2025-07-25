@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Hosting - Upload Your Files</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .upload-section {
+            padding: 2rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #bdc3c7;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9fa;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f1f3ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8f0fe;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #bdc3c7;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-area.dragover .upload-icon {
+            color: #667eea;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-subtext {
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .progress-container {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: #7f8c8d;
+        }
+        
+        .result-container {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #d5f4e6;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .result-container.error {
+            background: #fadbd8;
+            border-left-color: #e74c3c;
+        }
+        
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #27ae60;
+        }
+        
+        .result-container.error .result-title {
+            color: #e74c3c;
+        }
+        
+        .result-url {
+            font-family: monospace;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+            margin: 0.5rem 0;
+            word-break: break-all;
+        }
+        
+        .copy-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #229954;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
+        }
+        
+        .file-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 0.25rem;
+        }
+        
+        .reset-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .reset-btn:hover {
+            background: #7f8c8d;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .reset-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .library-section {
+            background: #f8f9ff;
+            border-top: 1px solid #e3e8ff;
+            border-bottom: 1px solid #e3e8ff;
+        }
+        
+        .library-header {
+            padding: 1.5rem 2rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+        
+        .library-header:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .library-header h3 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .library-header h3 i {
+            color: #667eea;
+        }
+        
+        .library-toggle {
+            color: #667eea;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .library-toggle.rotated {
+            transform: rotate(-90deg);
+        }
+        
+        .library-content {
+            max-height: 400px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .library-content.collapsed {
+            max-height: 0;
+        }
+        
+        .library-loading,
+        .library-empty {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+        
+        .library-loading i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .library-empty i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #bdc3c7;
+        }
+        
+        .library-list {
+            padding: 0 2rem 1rem;
+        }
+        
+        .library-item {
+            background: white;
+            border: 1px solid #e3e8ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1rem;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .library-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .library-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .library-item-name {
+            font-weight: 600;
+            color: #2c3e50;
+            word-break: break-word;
+        }
+        
+        .library-item-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+        
+        .library-item-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        .library-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .library-stat-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .library-stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .days-remaining {
+            color: #27ae60;
+        }
+        
+        .days-remaining.warning {
+            color: #f39c12;
+        }
+        
+        .days-remaining.danger {
+            color: #e74c3c;
+        }
+        
+        .library-copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .library-copy-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .library-copy-btn:active {
+            transform: translateY(0);
+        }
+        
+        .features {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        .features h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .feature-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-desc {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-section {
+                padding: 1.5rem;
+            }
+            
+            .upload-area {
+                padding: 2rem 1rem;
+            }
+            
+            .library-header {
+                padding: 1rem 1.5rem;
+            }
+            
+            .library-list {
+                padding: 0 1.5rem 1rem;
+            }
+            
+            .library-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            
+            .library-item-info {
+                text-align: left;
+            }
+            
+            .library-item-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .library-item-stats {
+                justify-content: center;
+            }
+            
+            .features {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HTML Hosting</h1>
+            <p>Upload and share your HTML files instantly</p>
+        </div>
+        
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drag & drop your HTML file here</div>
+                <div class="upload-subtext">or click to browse files</div>
+                <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Choose File</button>
+            </div>
+            
+            <input type="file" id="fileInput" class="file-input" accept=".html,.htm" />
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Uploading...</div>
+            </div>
+            
+            <div class="result-container" id="resultContainer">
+                <div class="result-title" id="resultTitle">Upload Successful!</div>
+                <div id="resultContent"></div>
+                <button class="reset-btn" onclick="resetUpload()">Upload Another File</button>
+            </div>
+        </div>
+        
+        <div class="library-section" id="librarySection">
+            <div class="library-header" onclick="toggleLibrary()">
+                <h3><i class="fas fa-folder-open"></i> Recent Uploads</h3>
+                <span class="library-toggle" id="libraryToggle">▼</span>
+            </div>
+            <div class="library-content" id="libraryContent">
+                <div class="library-loading" id="libraryLoading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading recent uploads...
+                </div>
+                <div class="library-empty" id="libraryEmpty" style="display: none;">
+                    <i class="fas fa-folder"></i>
+                    <p>No recent uploads found. Upload a file to see it here!</p>
+                </div>
+                <div class="library-list" id="libraryList"></div>
+            </div>
+        </div>
+        
+        <div class="features">
+            <h3>Features</h3>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Fast Upload</div>
+                    <div class="feature-desc">Quick and efficient file upload with progress tracking</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">Secure</div>
+                    <div class="feature-desc">Rate limiting and file validation for security</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">⏰</div>
+                    <div class="feature-title">Temporary</div>
+                    <div class="feature-desc">Files automatically expire after 30 days</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Analytics</div>
+                    <div class="feature-desc">Track views and access statistics</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultContent = document.getElementById('resultContent');
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('click', (e) => {
+            // Prevent double-click issues
+            e.preventDefault();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            console.log('Handling file:', file.name, 'Size:', file.size);
+            
+            // Validate file type
+            if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+                showError('Please select an HTML file (.html or .htm)');
+                return;
+            }
+
+            // Validate file size (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showError('File size must be less than 10MB');
+                return;
+            }
+
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('htmlfile', file);
+
+            // Show progress
+            progressContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+            uploadArea.style.display = 'none';
+
+            // Create XMLHttpRequest for progress tracking
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = `Uploading... ${Math.round(percent)}%`;
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            showSuccess(response);
+                        } else {
+                            showError(response.error || 'Upload failed');
+                        }
+                    } catch (e) {
+                        showError('Invalid server response');
+                    }
+                } else {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        showError(response.error || 'Upload failed');
+                    } catch (e) {
+                        showError(`Upload failed (${xhr.status})`);
+                    }
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                showError('Network error occurred');
+            });
+
+            xhr.open('POST', '/api/upload');
+            xhr.send(formData);
+        }
+
+        function showSuccess(response) {
+            progressContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+            resultContainer.classList.remove('error');
+            
+            resultTitle.textContent = 'Upload Successful!';
+            
+            const expiryDate = new Date(response.expiresAt).toLocaleDateString();
+            const fileSize = formatFileSize(response.size);
+            
+            resultContent.innerHTML = `
+                <div>Your file has been uploaded successfully!</div>
+                <div class="result-url">
+                    <span id="shareUrl">${response.url}</span>
+                    <button class="copy-btn" onclick="copyToClipboard('shareUrl')">Copy</button>
+                </div>
+                <div class="file-info">
+                    <div class="info-item">
+                        <div class="info-label">Original Name</div>
+                        <div class="info-value">${response.filename}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">File Size</div>
+                        <div class="info-value">${fileSize}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Expires On</div>
+                        <div class="info-value">${expiryDate}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">File ID</div>
+                        <div class="info-value">${response.id}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Refresh the library to show the new upload
+            setTimeout(() => {
+                loadRecentFiles();
+            }, 1000);
+        }
+
+        function showError(message) {
+            progressContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+            resultContainer.classList.add('error');
+            
+            resultTitle.textContent = 'Upload Failed';
+            resultContent.innerHTML = `<div>${message}</div>`;
+        }
+
+        function resetUpload() {
+            // Reset UI state
+            uploadArea.style.display = 'block';
+            progressContainer.style.display = 'none';
+            resultContainer.style.display = 'none';
+            resultContainer.classList.remove('error');
+            
+            // Reset progress bar
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Uploading...';
+            
+            // Reset file input
+            fileInput.value = '';
+            
+            // Reset upload area appearance
+            uploadArea.classList.remove('dragover');
+            
+            // Reset result content
+            resultContent.innerHTML = '';
+            resultTitle.textContent = '';
+            
+            console.log('Upload form reset successfully');
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent.trim();
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess(element);
+                }).catch((err) => {
+                    console.log('Clipboard API failed, trying fallback:', err);
+                    fallbackCopyToClipboard(text, element);
+                });
+            } else {
+                // Use fallback for non-HTTPS or older browsers
+                fallbackCopyToClipboard(text, element);
+            }
+        }
+        
+        function fallbackCopyToClipboard(text, element) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    showCopySuccess(element);
+                } else {
+                    showCopyError(element);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showCopyError(element);
+            }
+        }
+        
+        function showCopySuccess(element) {
+            const btn = element.nextElementSibling;
+            const originalText = btn.textContent;
+            const originalBackground = btn.style.background;
+            
+            btn.textContent = 'Copied!';
+            btn.style.background = '#27ae60';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = originalBackground;
+            }, 2000);
+        }
+        
+        function showCopyError(element) {
+            const btn = element.nextElementSibling;
+            const originalText = btn.textContent;
+            const originalBackground = btn.style.background;
+            
+            btn.textContent = 'Copy Failed';
+            btn.style.background = '#e74c3c';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = originalBackground;
+            }, 2000);
+            
+            // Show alert as fallback
+            alert('Copy failed. Please manually copy this URL:\n\n' + element.textContent.trim());
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Library functionality
+        let libraryExpanded = true;
+        
+        function toggleLibrary() {
+            const content = document.getElementById('libraryContent');
+            const toggle = document.getElementById('libraryToggle');
+            
+            libraryExpanded = !libraryExpanded;
+            
+            if (libraryExpanded) {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('rotated');
+                toggle.textContent = '▼';
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('rotated');
+                toggle.textContent = '▶';
+            }
+        }
+        
+        function loadRecentFiles() {
+            const loading = document.getElementById('libraryLoading');
+            const empty = document.getElementById('libraryEmpty');
+            const list = document.getElementById('libraryList');
+            
+            loading.style.display = 'block';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+            
+            fetch('/api/recent')
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    
+                    if (data.files && data.files.length > 0) {
+                        renderLibraryFiles(data.files);
+                    } else {
+                        empty.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recent files:', error);
+                    loading.style.display = 'none';
+                    empty.style.display = 'block';
+                    empty.innerHTML = '<i class="fas fa-exclamation-triangle"></i><p>Failed to load recent uploads.</p>';
+                });
+        }
+        
+        function renderLibraryFiles(files) {
+            const list = document.getElementById('libraryList');
+            
+            list.innerHTML = files.map(file => {
+                const uploadDate = new Date(file.uploadTime).toLocaleDateString();
+                const uploadTime = new Date(file.uploadTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                let daysClass = 'days-remaining';
+                if (file.daysRemaining <= 3) daysClass += ' danger';
+                else if (file.daysRemaining <= 7) daysClass += ' warning';
+                
+                return `
+                    <div class="library-item">
+                        <div class="library-item-info">
+                            <div class="library-item-name">${file.name}</div>
+                            <div class="library-item-meta">
+                                <span><i class="fas fa-calendar"></i> ${uploadDate} ${uploadTime}</span>
+                                <span><i class="fas fa-hdd"></i> ${formatFileSize(file.fileSize)}</span>
+                            </div>
+                        </div>
+                        <div class="library-item-stats">
+                            <div class="library-stat">
+                                <div class="library-stat-value ${daysClass}">${file.daysRemaining}</div>
+                                <div class="library-stat-label">Days Left</div>
+                            </div>
+                            <div class="library-stat">
+                                <div class="library-stat-value">${file.accessCount}</div>
+                                <div class="library-stat-label">Views</div>
+                            </div>
+                        </div>
+                        <button class="library-copy-btn" onclick="copyLibraryUrl('${file.url}', this)">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function copyLibraryUrl(url, buttonElement) {
+            // Use the same robust copy function
+            const tempElement = document.createElement('span');
+            tempElement.textContent = url;
+            tempElement.id = 'tempCopyElement';
+            document.body.appendChild(tempElement);
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showLibraryCopySuccess(buttonElement);
+                }).catch((err) => {
+                    console.log('Clipboard API failed, trying fallback:', err);
+                    fallbackLibraryCopy(url, buttonElement);
+                });
+            } else {
+                fallbackLibraryCopy(url, buttonElement);
+            }
+            
+            document.body.removeChild(tempElement);
+        }
+        
+        function fallbackLibraryCopy(url, buttonElement) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    showLibraryCopySuccess(buttonElement);
+                } else {
+                    showLibraryCopyError(buttonElement, url);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showLibraryCopyError(buttonElement, url);
+            }
+        }
+        
+        function showLibraryCopySuccess(buttonElement) {
+            const originalHTML = buttonElement.innerHTML;
+            const originalBackground = buttonElement.style.background;
+            
+            buttonElement.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            buttonElement.style.background = '#27ae60';
+            buttonElement.disabled = true;
+            
+            setTimeout(() => {
+                buttonElement.innerHTML = originalHTML;
+                buttonElement.style.background = originalBackground;
+                buttonElement.disabled = false;
+            }, 2000);
+        }
+        
+        function showLibraryCopyError(buttonElement, url) {
+            const originalHTML = buttonElement.innerHTML;
+            const originalBackground = buttonElement.style.background;
+            
+            buttonElement.innerHTML = '<i class="fas fa-times"></i> Failed';
+            buttonElement.style.background = '#e74c3c';
+            
+            setTimeout(() => {
+                buttonElement.innerHTML = originalHTML;
+                buttonElement.style.background = originalBackground;
+            }, 2000);
+            
+            alert('Copy failed. Please manually copy this URL:\n\n' + url);
+        }
+        
+        // Load library when page loads and after successful uploads
+        window.addEventListener('load', () => {
+            loadRecentFiles();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        button {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #00a085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Test File Upload Success!</h1>
+        
+        <div class="test-section">
+            <h2>✅ CSS is working perfectly</h2>
+            <p>This demonstrates that:</p>
+            <ul>
+                <li>Inline CSS styles are applied correctly</li>
+                <li>Modern CSS features like gradients and backdrop-filter work</li>
+                <li>Responsive design is maintained</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ JavaScript is functional</h2>
+            <p>Click the button below to test JavaScript execution:</p>
+            <button onclick="testJS()">Test JavaScript</button>
+            <button onclick="changeColor()">Change Colors</button>
+            <p id="jsResult"></p>
+        </div>
+        
+        <div class="test-section">
+            <h2>✅ HTML Rendering is excellent</h2>
+            <p>This file was uploaded through the HTML hosting service and demonstrates that all core web technologies work properly.</p>
+        </div>
+    </div>
+
+    <script>
+        function testJS() {
+            document.getElementById('jsResult').innerHTML = '🚀 JavaScript is working perfectly! Current time: ' + new Date().toLocaleTimeString();
+        }
+        
+        function changeColor() {
+            const colors = ['#74b9ff', '#fd79a8', '#fdcb6e', '#6c5ce7', '#a29bfe', '#e17055'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            document.body.style.background = `linear-gradient(135deg, ${randomColor}, #2d3436)`;
+        }
+        
+        // Auto-run test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testJS();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
