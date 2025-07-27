@@ -280,6 +280,16 @@
             color: #667eea;
         }
         
+        .library-count {
+            font-size: 0.9rem;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 0.5rem;
+            font-weight: 500;
+        }
+        
         .library-toggle {
             color: #667eea;
             font-size: 1.2rem;
@@ -291,7 +301,7 @@
         }
         
         .library-content {
-            max-height: 400px;
+            max-height: 500px;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
@@ -320,6 +330,45 @@
         
         .library-list {
             padding: 0 2rem 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Scrollbar styling for better appearance */
+        .library-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .library-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .library-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .library-list::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* Firefox scrollbar styling */
+        .library-list {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+        
+        /* Fade effect at bottom to indicate more content */
+        .library-list::after {
+            content: '';
+            position: sticky;
+            bottom: 0;
+            display: block;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(248, 249, 255, 0.9));
+            pointer-events: none;
         }
         
         .library-item {
@@ -489,6 +538,8 @@
             
             .library-list {
                 padding: 0 1.5rem 1rem;
+                max-height: 300px;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
             }
             
             .library-item {
@@ -549,7 +600,7 @@
         
         <div class="library-section" id="librarySection">
             <div class="library-header" onclick="toggleLibrary()">
-                <h3><i class="fas fa-folder-open"></i> Recent Uploads</h3>
+                <h3><i class="fas fa-folder-open"></i> Recent Uploads <span class="library-count" id="libraryCount"></span></h3>
                 <span class="library-toggle" id="libraryToggle">▼</span>
             </div>
             <div class="library-content" id="libraryContent">
@@ -897,6 +948,7 @@
                         renderLibraryFiles(data.files);
                     } else {
                         empty.style.display = 'block';
+                        document.getElementById('libraryCount').textContent = '';
                     }
                 })
                 .catch(error => {
@@ -909,6 +961,10 @@
         
         function renderLibraryFiles(files) {
             const list = document.getElementById('libraryList');
+            const count = document.getElementById('libraryCount');
+            
+            // Update count badge
+            count.textContent = files.length > 0 ? `(${files.length})` : '';
             
             list.innerHTML = files.map(file => {
                 const uploadDate = new Date(file.uploadTime).toLocaleDateString();
