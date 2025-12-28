@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Files - HTML Hosting</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header h1 i {
+            color: #667eea;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .search-section {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e3e8ff;
+        }
+
+        .search-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-stats {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .files-list {
+            padding: 1rem 2rem 2rem;
+        }
+
+        .loading, .empty {
+            text-align: center;
+            padding: 3rem;
+            color: #7f8c8d;
+        }
+
+        .loading i, .empty i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border: 1px solid #e3e8ff;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: start;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-item.archived {
+            opacity: 0.7;
+            background: #fafafa;
+        }
+
+        .file-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .file-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .file-description {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+        }
+
+        .file-meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: #95a5a6;
+        }
+
+        .file-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .file-meta i {
+            color: #667eea;
+        }
+
+        .file-url {
+            font-family: monospace;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .file-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .days-remaining {
+            color: #27ae60;
+        }
+
+        .days-remaining.warning {
+            color: #f39c12;
+        }
+
+        .days-remaining.danger {
+            color: #e74c3c;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .action-btn.copy {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .action-btn.copy:hover {
+            background: #5a6fd8;
+        }
+
+        .action-btn.archive {
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .action-btn.archive:hover {
+            background: #fef9e7;
+        }
+
+        .action-btn.unarchive {
+            color: #27ae60;
+            border-color: #27ae60;
+        }
+
+        .action-btn.unarchive:hover {
+            background: #e8f8f0;
+        }
+
+        .action-btn.delete {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .action-btn.delete:hover {
+            background: #fdedec;
+        }
+
+        .archived-badge {
+            background: #f39c12;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .permanent-badge {
+            background: #27ae60;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .search-section {
+                padding: 1rem;
+            }
+
+            .search-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .files-list {
+                padding: 1rem;
+            }
+
+            .file-item {
+                grid-template-columns: 1fr;
+            }
+
+            .file-actions {
+                align-items: stretch;
+            }
+
+            .file-stats {
+                justify-content: center;
+            }
+
+            .action-buttons {
+                justify-content: center;
+            }
+
+            .file-meta {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-folder-open"></i> All Files</h1>
+            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Upload</a>
+        </div>
+
+        <div class="search-section">
+            <div class="search-wrapper">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search by name, description, or URL...">
+                </div>
+                <div class="search-stats" id="searchStats"></div>
+            </div>
+        </div>
+
+        <div class="files-list" id="filesList">
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading files...
+            </div>
+            <div class="empty" id="empty" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <p>No files found</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allFiles = [];
+        let searchTimeout = null;
+
+        // Load files on page load
+        window.addEventListener('load', loadFiles);
+
+        // Search input handler
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value.trim();
+                if (query) {
+                    searchFiles(query);
+                } else {
+                    loadFiles();
+                }
+            }, 300);
+        });
+
+        function loadFiles() {
+            const loading = document.getElementById('loading');
+            const empty = document.getElementById('empty');
+            const filesList = document.getElementById('filesList');
+
+            loading.style.display = 'block';
+            empty.style.display = 'none';
+
+            fetch('/api/files')
+                .then(res => res.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    allFiles = data.files || [];
+                    renderFiles(allFiles);
+                    updateStats(allFiles.length, allFiles.length);
+                })
+                .catch(error => {
+                    console.error('Error loading files:', error);
+                    loading.style.display = 'none';
+                    empty.innerHTML = '<i class="fas fa-exclamation-triangle"></i><p>Failed to load files</p>';
+                    empty.style.display = 'block';
+                });
+        }
+
+        function searchFiles(query) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+
+            fetch(`/api/files?search=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    const files = data.files || [];
+                    renderFiles(files);
+                    updateStats(files.length, allFiles.length);
+                })
+                .catch(error => {
+                    console.error('Error searching files:', error);
+                    loading.style.display = 'none';
+                });
+        }
+
+        function updateStats(shown, total) {
+            const stats = document.getElementById('searchStats');
+            if (shown === total) {
+                stats.textContent = `${total} file${total !== 1 ? 's' : ''}`;
+            } else {
+                stats.textContent = `${shown} of ${total} files`;
+            }
+        }
+
+        function renderFiles(files) {
+            const filesList = document.getElementById('filesList');
+            const empty = document.getElementById('empty');
+            const loading = document.getElementById('loading');
+
+            // Keep loading element but clear file items
+            const existingItems = filesList.querySelectorAll('.file-item');
+            existingItems.forEach(item => item.remove());
+
+            if (files.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = `file-item${file.archived ? ' archived' : ''}`;
+
+                const uploadDate = new Date(file.uploadTime).toLocaleDateString();
+                const uploadTime = new Date(file.uploadTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                let expiryDisplay = '';
+                let expiryBadge = '';
+                if (file.permanent) {
+                    expiryDisplay = '<span class="days-remaining">Permanent</span>';
+                    expiryBadge = '<span class="permanent-badge">Permanent</span>';
+                } else {
+                    let daysClass = 'days-remaining';
+                    if (file.daysRemaining <= 3) daysClass += ' danger';
+                    else if (file.daysRemaining <= 7) daysClass += ' warning';
+                    expiryDisplay = `<span class="${daysClass}">${file.daysRemaining} days</span>`;
+                }
+
+                const archivedBadge = file.archived ? '<span class="archived-badge">Archived</span>' : '';
+                const archiveBtn = file.archived
+                    ? `<button class="action-btn unarchive" onclick="unarchiveFile('${file.slug}', this)"><i class="fas fa-box-open"></i> Restore</button>`
+                    : `<button class="action-btn archive" onclick="archiveFile('${file.slug}', this)"><i class="fas fa-archive"></i> Archive</button>`;
+
+                const descriptionHtml = file.description
+                    ? `<div class="file-description">${escapeHtml(file.description)}</div>`
+                    : '';
+
+                item.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">
+                            ${escapeHtml(file.name)}
+                            ${archivedBadge}
+                            ${expiryBadge}
+                        </div>
+                        ${descriptionHtml}
+                        <div class="file-meta">
+                            <span><i class="fas fa-link"></i> <span class="file-url">/${file.slug}</span></span>
+                            <span><i class="fas fa-calendar"></i> ${uploadDate} ${uploadTime}</span>
+                            <span><i class="fas fa-hdd"></i> ${formatFileSize(file.fileSize)}</span>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <div class="file-stats">
+                            <div class="stat">
+                                <div class="stat-value">${expiryDisplay}</div>
+                                <div class="stat-label">Expires</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${file.accessCount}</div>
+                                <div class="stat-label">Views</div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn copy" onclick="copyUrl('${file.url}', this)"><i class="fas fa-copy"></i> Copy URL</button>
+                            ${archiveBtn}
+                            <button class="action-btn delete" onclick="deleteFile('${file.slug}', this)"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+
+                filesList.appendChild(item);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function copyUrl(url, btn) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showCopySuccess(btn);
+                }).catch(() => {
+                    fallbackCopy(url, btn);
+                });
+            } else {
+                fallbackCopy(url, btn);
+            }
+        }
+
+        function fallbackCopy(url, btn) {
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showCopySuccess(btn);
+            } catch (err) {
+                alert('Copy failed. URL: ' + url);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess(btn) {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+            }, 2000);
+        }
+
+        function archiveFile(slug, btn) {
+            if (!confirm('Archive this file? It will no longer be viewable via its URL.')) return;
+
+            btn.disabled = true;
+            fetch(`/api/archive/${encodeURIComponent(slug)}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFiles();
+                    } else {
+                        alert(data.error || 'Failed to archive file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error archiving file');
+                    btn.disabled = false;
+                });
+        }
+
+        function unarchiveFile(slug, btn) {
+            btn.disabled = true;
+            fetch(`/api/unarchive/${encodeURIComponent(slug)}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFiles();
+                    } else {
+                        alert(data.error || 'Failed to unarchive file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error unarchiving file');
+                    btn.disabled = false;
+                });
+        }
+
+        function deleteFile(slug, btn) {
+            if (!confirm('Permanently delete this file? This cannot be undone.')) return;
+
+            btn.disabled = true;
+            fetch(`/api/file/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFiles();
+                    } else {
+                        alert(data.error || 'Failed to delete file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error deleting file');
+                    btn.disabled = false;
+                });
+        }
+    </script>
+</body>
+</html>

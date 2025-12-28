@@ -50,9 +50,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
+// API Routes
 app.use('/api', uploadLimiter, uploadRoutes);
-app.use('/view', viewRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -62,10 +61,21 @@ app.get('/health', (req, res) => {
 // Root route with secure CSP for upload page
 app.get('/', (req, res) => {
   res.set({
-    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self';"
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' https://cdnjs.cloudflare.com;"
   });
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// List page route
+app.get('/list', (req, res) => {
+  res.set({
+    'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' https://cdnjs.cloudflare.com;"
+  });
+  res.sendFile(path.join(__dirname, 'public', 'list.html'));
+});
+
+// View routes - must be last before 404 handler (catches /:slug)
+app.use('/', viewRoutes);
 
 // 404 handler
 app.use((req, res) => {

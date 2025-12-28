@@ -4,7 +4,7 @@ This document provides essential context for AI assistants working on this codeb
 
 ## Project Overview
 
-HTMLHosting is a temporary HTML file hosting service for `hosting.zyroi.com`. Users can upload HTML files which are assigned UUID-based URLs and automatically expire after 30 days.
+HTMLHosting is a temporary HTML file hosting service for `hosting.zyroi.com`. Users can upload HTML files with custom or auto-generated URL slugs, optional descriptions, and configurable expiration periods (including permanent links).
 
 ### Tech Stack
 
@@ -26,10 +26,11 @@ HTMLHosting/
 │   ├── package.json          # Dependencies and scripts
 │   ├── .env.example          # Environment configuration template
 │   ├── routes/
-│   │   ├── upload.js         # POST /api/upload, GET /api/recent
-│   │   └── view.js           # GET /view/:id, GET /view/:id/info
+│   │   ├── upload.js         # Upload, list, archive, delete APIs
+│   │   └── view.js           # GET /:slug - serve HTML content
 │   ├── public/
-│   │   └── index.html        # Upload interface (single-page app)
+│   │   ├── index.html        # Upload interface (single-page app)
+│   │   └── list.html         # Full file list with search
 │   └── views/
 │       └── error.html        # Error page template (unused, inline in view.js)
 ├── uploads/                  # UUID-organized file storage directories
@@ -80,9 +81,15 @@ docker run -d -p 3011:3000 \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/upload` | Upload HTML file (rate limited: 10/15min) |
-| GET | `/api/recent` | List recent uploads (last 24h, max 20) |
-| GET | `/view/:uuid` | Serve uploaded HTML content |
-| GET | `/view/:uuid/info` | Get file metadata (JSON) |
+| GET | `/api/recent` | List 5 most recent uploads |
+| GET | `/api/files` | List all files (supports `?search=` query) |
+| GET | `/api/check-slug/:slug` | Check if a custom slug is available |
+| POST | `/api/archive/:slug` | Archive a file (hide from public view) |
+| POST | `/api/unarchive/:slug` | Unarchive a file |
+| DELETE | `/api/file/:slug` | Permanently delete a file |
+| GET | `/:slug` | Serve uploaded HTML content |
+| GET | `/:slug/info` | Get file metadata (JSON) |
+| GET | `/list` | Full file list page with search |
 | GET | `/health` | Health check endpoint |
 
 ## Database Schema
@@ -91,20 +98,46 @@ Single table `hosted_files` in SQLite:
 
 ```sql
 CREATE TABLE hosted_files (
-  id TEXT PRIMARY KEY,           -- UUID v4
+  id TEXT PRIMARY KEY,           -- UUID v4 (internal reference)
+  slug TEXT UNIQUE NOT NULL,     -- URL slug (custom or auto-generated)
   filename TEXT NOT NULL,        -- Always 'index.html'
   original_name TEXT NOT NULL,   -- Sanitized original filename
+  description TEXT DEFAULT '',   -- Optional user description
   upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  expiry_time DATETIME NOT NULL, -- 30 days from upload
+  expiry_time DATETIME,          -- NULL for permanent links
   file_path TEXT NOT NULL,       -- Absolute path to file
   file_size INTEGER NOT NULL,
   access_count INTEGER DEFAULT 0,
+  archived INTEGER DEFAULT 0,    -- 1 if archived, 0 if active
   upload_ip TEXT,                -- Client IP for rate limiting
   user_agent TEXT                -- For analytics
 );
 ```
 
-**Indexes**: `idx_expiry_time`, `idx_upload_ip`
+**Indexes**: `idx_slug`, `idx_expiry_time`, `idx_upload_ip`, `idx_archived`
+
+## Key Features
+
+### Custom URLs
+- Users can request custom URL slugs (e.g., `my-project`)
+- Auto-generates 8-character random slugs if not specified
+- Validates: alphanumeric, hyphens, underscores only
+- Reserved slugs blocked: `api`, `health`, `list`, `admin`, etc.
+
+### Flexible Expiration
+- Options: 1 day, 30 days, 6 months, or permanent (no expiry)
+- Permanent links have `expiry_time = NULL`
+- Cleanup process skips permanent files
+
+### Archive Functionality
+- Archived files remain in database and file list
+- Archived files return 410 "Content Archived" when accessed
+- Can be unarchived to restore access
+
+### File List & Search
+- Landing page shows 5 most recent uploads
+- `/list` page shows all files with search
+- Search matches filename, description, or slug
 
 ## Key Architectural Patterns
 
@@ -112,6 +145,11 @@ CREATE TABLE hosted_files (
 - Files stored in `uploads/{uuid}/index.html`
 - Each upload gets its own directory
 - Cleanup removes entire upload directory on expiration
+
+### URL Routing
+- Slug-based URLs at root level: `/{slug}`
+- Static files and API routes take precedence
+- View routes mounted last to catch slugs
 
 ### Security Measures
 - **File validation**: HTML-only (`.html`, `.htm` extensions, `text/html` MIME)
@@ -123,7 +161,7 @@ CREATE TABLE hosted_files (
 ### Error Handling
 - Custom error pages with styled HTML (generated inline in `view.js`)
 - 404 for missing files
-- 410 for expired content
+- 410 for expired or archived content
 - JSON error responses for API endpoints
 
 ## Code Conventions
@@ -148,7 +186,7 @@ CREATE TABLE hosted_files (
 
 ### Logging
 - Console logging with prefixes
-- Log format: `File uploaded: {uuid} ({filename}, {size} bytes)`
+- Log format: `File uploaded: {slug} ({filename}, {size} bytes)`
 - Errors: `console.error('Context:', error)`
 
 ## Environment Variables
@@ -170,20 +208,26 @@ See `.env.example` for all options:
 ### Upload Flow
 1. Multer processes file into memory buffer
 2. Content validated as HTML (`validateHtmlContent()`)
-3. UUID generated, directory created
-4. File written to disk as `index.html`
-5. Database record inserted
-6. Shareable URL returned
+3. Custom slug validated or random slug generated
+4. UUID generated, directory created
+5. File written to disk as `index.html`
+6. Database record inserted with slug, description, expiry
+7. Shareable URL returned
 
 ### View Flow
-1. UUID validated (regex check)
-2. Database queried for non-expired record
+1. Slug validated (alphanumeric, hyphens, underscores)
+2. Database queried for non-expired, non-archived record
 3. File existence verified on disk
 4. Access count incremented (non-blocking)
 5. HTML served with permissive CSP
 
+### Archive/Delete Flow
+- Archive: Sets `archived = 1` in database, file remains on disk
+- Unarchive: Sets `archived = 0`, restores access
+- Delete: Removes database record AND file from disk
+
 ### Cleanup Process
-1. Query expired files from database
+1. Query expired files from database (excludes NULL expiry)
 2. Delete directories from filesystem
 3. Remove records from database
 4. Can run via cron: `0 2 * * * cd /path/to/app && node cleanup.js`
@@ -195,7 +239,15 @@ See `.env.example` for all options:
 - Manual testing via upload interface or curl:
 
 ```bash
+# Basic upload
 curl -F "htmlfile=@test-sample.html" http://localhost:3000/api/upload
+
+# Upload with options
+curl -F "htmlfile=@test-sample.html" \
+     -F "customSlug=my-test" \
+     -F "description=Test upload" \
+     -F "duration=permanent" \
+     http://localhost:3000/api/upload
 ```
 
 ## Common Tasks
@@ -209,16 +261,19 @@ curl -F "htmlfile=@test-sample.html" http://localhost:3000/api/upload
 1. Update table creation in `database.js` `initDatabase()`
 2. Add new query functions as needed
 3. Export from module.exports
+4. Delete existing database to recreate with new schema
 
-### Changing Expiration Period
-- Modify `expiryTime.setDate(expiryTime.getDate() + 30)` in `upload.js:87`
-- Or make configurable via `DEFAULT_EXPIRY_DAYS` env var
+### Adding New Duration Options
+1. Update `calculateExpiryTime()` in `upload.js`
+2. Add option to duration dropdown in `index.html`
 
 ## Gotchas and Edge Cases
 
 1. **CSP disabled globally** in Helmet - individual routes set their own
 2. **CORS origin** differs between production (strict) and development (permissive)
-3. **File path validation** relies on UUID format check, not path traversal check
+3. **Slug validation** uses regex - alphanumeric, hyphens, underscores only
 4. **Database singleton** - `db` variable is module-scoped, shared across requires
 5. **Graceful shutdown** handlers exist for SIGTERM and SIGINT
 6. **Health check** at `/health` used by Docker HEALTHCHECK
+7. **View routes last** - must be mounted after all other routes to catch slugs
+8. **NULL expiry** - permanent files have `expiry_time = NULL` in database
