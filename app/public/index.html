@@ -509,7 +509,200 @@
             color: #7f8c8d;
             font-size: 0.9rem;
         }
-        
+
+        /* Upload Options Styles */
+        .upload-options {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .upload-options h4 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .slug-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .slug-prefix {
+            padding: 10px 12px;
+            background: #f1f3f5;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .slug-input-wrapper input {
+            border: none;
+            border-radius: 0;
+        }
+
+        .slug-status {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            min-height: 1.2em;
+        }
+
+        .slug-status.available {
+            color: #27ae60;
+        }
+
+        .slug-status.unavailable {
+            color: #e74c3c;
+        }
+
+        .slug-status.checking {
+            color: #7f8c8d;
+        }
+
+        .selected-file {
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .selected-file i {
+            color: #667eea;
+        }
+
+        .cancel-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: background 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: #7f8c8d;
+        }
+
+        /* Library Action Buttons */
+        .library-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .library-action-btn {
+            background: transparent;
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .library-action-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .library-action-btn.archive {
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .library-action-btn.archive:hover {
+            background: #fef9e7;
+        }
+
+        .library-action-btn.unarchive {
+            color: #27ae60;
+            border-color: #27ae60;
+        }
+
+        .library-action-btn.unarchive:hover {
+            background: #e8f8f0;
+        }
+
+        .library-action-btn.delete {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .library-action-btn.delete:hover {
+            background: #fdedec;
+        }
+
+        .library-item.archived {
+            opacity: 0.7;
+            background: #f8f9fa;
+        }
+
+        .archived-badge {
+            background: #f39c12;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .library-item-description {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .view-all-link {
+            display: block;
+            text-align: center;
+            padding: 1rem;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            border-top: 1px solid #e3e8ff;
+            transition: background 0.3s;
+        }
+
+        .view-all-link:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
         @media (max-width: 600px) {
             .container {
                 margin: 10px;
@@ -583,7 +776,36 @@
             </div>
             
             <input type="file" id="fileInput" class="file-input" accept=".html,.htm" />
-            
+
+            <!-- Upload Options (shown after file selection) -->
+            <div class="upload-options" id="uploadOptions" style="display: none;">
+                <h4>Upload Options</h4>
+                <div class="form-group">
+                    <label for="description">Description (optional)</label>
+                    <input type="text" id="description" placeholder="Brief description of this file" maxlength="200" />
+                </div>
+                <div class="form-group">
+                    <label for="customSlug">Custom URL (optional)</label>
+                    <div class="slug-input-wrapper">
+                        <span class="slug-prefix" id="slugPrefix"></span>
+                        <input type="text" id="customSlug" placeholder="my-project" maxlength="100" />
+                    </div>
+                    <div class="slug-status" id="slugStatus"></div>
+                </div>
+                <div class="form-group">
+                    <label for="duration">Link Duration</label>
+                    <select id="duration">
+                        <option value="1day">1 Day</option>
+                        <option value="30days" selected>30 Days</option>
+                        <option value="6months">6 Months</option>
+                        <option value="permanent">Permanent (No Expiry)</option>
+                    </select>
+                </div>
+                <div class="selected-file" id="selectedFile"></div>
+                <button class="upload-btn" id="uploadBtn" onclick="uploadSelectedFile()">Upload File</button>
+                <button class="cancel-btn" onclick="cancelUpload()">Cancel</button>
+            </div>
+
             <div class="progress-container" id="progressContainer">
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
@@ -609,9 +831,12 @@
                 </div>
                 <div class="library-empty" id="libraryEmpty" style="display: none;">
                     <i class="fas fa-folder"></i>
-                    <p>No recent uploads found. Upload a file to see it here!</p>
+                    <p>No uploads found. Upload a file to see it here!</p>
                 </div>
                 <div class="library-list" id="libraryList"></div>
+                <a href="/list" class="view-all-link" id="viewAllLink" style="display: none;">
+                    <i class="fas fa-list"></i> View All Files & Search
+                </a>
             </div>
         </div>
         
@@ -645,12 +870,19 @@
     <script>
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
+        const uploadOptions = document.getElementById('uploadOptions');
         const progressContainer = document.getElementById('progressContainer');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
         const resultContainer = document.getElementById('resultContainer');
         const resultTitle = document.getElementById('resultTitle');
         const resultContent = document.getElementById('resultContent');
+
+        let selectedFile = null;
+        let slugCheckTimeout = null;
+
+        // Set the slug prefix
+        document.getElementById('slugPrefix').textContent = window.location.origin + '/';
 
         // Drag and drop handlers
         uploadArea.addEventListener('dragover', (e) => {
@@ -666,7 +898,7 @@
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            
+
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 handleFile(files[0]);
@@ -674,7 +906,6 @@
         });
 
         uploadArea.addEventListener('click', (e) => {
-            // Prevent double-click issues
             e.preventDefault();
             fileInput.click();
         });
@@ -685,9 +916,51 @@
             }
         });
 
+        // Slug availability check
+        document.getElementById('customSlug').addEventListener('input', (e) => {
+            const slug = e.target.value.trim().toLowerCase();
+            const statusEl = document.getElementById('slugStatus');
+
+            if (!slug) {
+                statusEl.textContent = '';
+                statusEl.className = 'slug-status';
+                return;
+            }
+
+            // Validate format first
+            if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
+                statusEl.textContent = 'Only letters, numbers, hyphens, and underscores allowed';
+                statusEl.className = 'slug-status unavailable';
+                return;
+            }
+
+            statusEl.textContent = 'Checking availability...';
+            statusEl.className = 'slug-status checking';
+
+            // Debounce the API call
+            clearTimeout(slugCheckTimeout);
+            slugCheckTimeout = setTimeout(() => {
+                fetch(`/api/check-slug/${encodeURIComponent(slug)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.available) {
+                            statusEl.textContent = 'Available!';
+                            statusEl.className = 'slug-status available';
+                        } else {
+                            statusEl.textContent = data.reason || 'Not available';
+                            statusEl.className = 'slug-status unavailable';
+                        }
+                    })
+                    .catch(() => {
+                        statusEl.textContent = 'Error checking availability';
+                        statusEl.className = 'slug-status unavailable';
+                    });
+            }, 300);
+        });
+
         function handleFile(file) {
             console.log('Handling file:', file.name, 'Size:', file.size);
-            
+
             // Validate file type
             if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
                 showError('Please select an HTML file (.html or .htm)');
@@ -700,17 +973,37 @@
                 return;
             }
 
-            uploadFile(file);
+            // Store the file and show options
+            selectedFile = file;
+            uploadArea.style.display = 'none';
+            uploadOptions.style.display = 'block';
+            document.getElementById('selectedFile').innerHTML = `<i class="fas fa-file-code"></i> ${file.name} (${formatFileSize(file.size)})`;
         }
 
-        function uploadFile(file) {
+        function cancelUpload() {
+            selectedFile = null;
+            uploadOptions.style.display = 'none';
+            uploadArea.style.display = 'block';
+            document.getElementById('description').value = '';
+            document.getElementById('customSlug').value = '';
+            document.getElementById('duration').value = '30days';
+            document.getElementById('slugStatus').textContent = '';
+            fileInput.value = '';
+        }
+
+        function uploadSelectedFile() {
+            if (!selectedFile) return;
+
             const formData = new FormData();
-            formData.append('htmlfile', file);
+            formData.append('htmlfile', selectedFile);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('customSlug', document.getElementById('customSlug').value);
+            formData.append('duration', document.getElementById('duration').value);
 
             // Show progress
+            uploadOptions.style.display = 'none';
             progressContainer.style.display = 'block';
             resultContainer.style.display = 'none';
-            uploadArea.style.display = 'none';
 
             // Create XMLHttpRequest for progress tracking
             const xhr = new XMLHttpRequest();
@@ -757,12 +1050,12 @@
             progressContainer.style.display = 'none';
             resultContainer.style.display = 'block';
             resultContainer.classList.remove('error');
-            
+
             resultTitle.textContent = 'Upload Successful!';
-            
-            const expiryDate = new Date(response.expiresAt).toLocaleDateString();
+
+            const expiryText = response.permanent ? 'Never (Permanent)' : new Date(response.expiresAt).toLocaleDateString();
             const fileSize = formatFileSize(response.size);
-            
+
             resultContent.innerHTML = `
                 <div>Your file has been uploaded successfully!</div>
                 <div class="result-url">
@@ -779,16 +1072,23 @@
                         <div class="info-value">${fileSize}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Expires On</div>
-                        <div class="info-value">${expiryDate}</div>
+                        <div class="info-label">Expires</div>
+                        <div class="info-value">${expiryText}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">File ID</div>
-                        <div class="info-value">${response.id}</div>
+                        <div class="info-label">URL Slug</div>
+                        <div class="info-value">${response.slug}</div>
                     </div>
                 </div>
             `;
-            
+
+            // Reset the form fields
+            selectedFile = null;
+            document.getElementById('description').value = '';
+            document.getElementById('customSlug').value = '';
+            document.getElementById('duration').value = '30days';
+            document.getElementById('slugStatus').textContent = '';
+
             // Refresh the library to show the new upload
             setTimeout(() => {
                 loadRecentFiles();
@@ -797,9 +1097,10 @@
 
         function showError(message) {
             progressContainer.style.display = 'none';
+            uploadOptions.style.display = 'none';
             resultContainer.style.display = 'block';
             resultContainer.classList.add('error');
-            
+
             resultTitle.textContent = 'Upload Failed';
             resultContent.innerHTML = `<div>${message}</div>`;
         }
@@ -807,24 +1108,32 @@
         function resetUpload() {
             // Reset UI state
             uploadArea.style.display = 'block';
+            uploadOptions.style.display = 'none';
             progressContainer.style.display = 'none';
             resultContainer.style.display = 'none';
             resultContainer.classList.remove('error');
-            
+
             // Reset progress bar
             progressFill.style.width = '0%';
             progressText.textContent = 'Uploading...';
-            
-            // Reset file input
+
+            // Reset file input and selected file
             fileInput.value = '';
-            
+            selectedFile = null;
+
+            // Reset form fields
+            document.getElementById('description').value = '';
+            document.getElementById('customSlug').value = '';
+            document.getElementById('duration').value = '30days';
+            document.getElementById('slugStatus').textContent = '';
+
             // Reset upload area appearance
             uploadArea.classList.remove('dragover');
-            
+
             // Reset result content
             resultContent.innerHTML = '';
             resultTitle.textContent = '';
-            
+
             console.log('Upload form reset successfully');
         }
 
@@ -962,43 +1271,132 @@
         function renderLibraryFiles(files) {
             const list = document.getElementById('libraryList');
             const count = document.getElementById('libraryCount');
-            
+            const viewAllLink = document.getElementById('viewAllLink');
+
             // Update count badge
             count.textContent = files.length > 0 ? `(${files.length})` : '';
-            
+
+            // Show View All link if there are files
+            viewAllLink.style.display = files.length > 0 ? 'block' : 'none';
+
             list.innerHTML = files.map(file => {
                 const uploadDate = new Date(file.uploadTime).toLocaleDateString();
                 const uploadTime = new Date(file.uploadTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                let daysClass = 'days-remaining';
-                if (file.daysRemaining <= 3) daysClass += ' danger';
-                else if (file.daysRemaining <= 7) daysClass += ' warning';
-                
+
+                let expiryDisplay = '';
+                if (file.permanent) {
+                    expiryDisplay = '<span style="color: #27ae60;">Permanent</span>';
+                } else {
+                    let daysClass = 'days-remaining';
+                    if (file.daysRemaining <= 3) daysClass += ' danger';
+                    else if (file.daysRemaining <= 7) daysClass += ' warning';
+                    expiryDisplay = `<span class="${daysClass}">${file.daysRemaining} days</span>`;
+                }
+
+                const archivedClass = file.archived ? ' archived' : '';
+                const archivedBadge = file.archived ? '<span class="archived-badge">Archived</span>' : '';
+                const archiveBtn = file.archived
+                    ? `<button class="library-action-btn unarchive" onclick="unarchiveFile('${file.slug}', this)" title="Unarchive"><i class="fas fa-box-open"></i></button>`
+                    : `<button class="library-action-btn archive" onclick="archiveFile('${file.slug}', this)" title="Archive"><i class="fas fa-archive"></i></button>`;
+
+                const descriptionHtml = file.description
+                    ? `<div class="library-item-description">${escapeHtml(file.description)}</div>`
+                    : '';
+
                 return `
-                    <div class="library-item">
+                    <div class="library-item${archivedClass}">
                         <div class="library-item-info">
-                            <div class="library-item-name">${file.name}</div>
+                            <div class="library-item-name">${escapeHtml(file.name)} ${archivedBadge}</div>
+                            ${descriptionHtml}
                             <div class="library-item-meta">
-                                <span><i class="fas fa-calendar"></i> ${uploadDate} ${uploadTime}</span>
+                                <span><i class="fas fa-link"></i> /${file.slug}</span>
                                 <span><i class="fas fa-hdd"></i> ${formatFileSize(file.fileSize)}</span>
                             </div>
                         </div>
                         <div class="library-item-stats">
                             <div class="library-stat">
-                                <div class="library-stat-value ${daysClass}">${file.daysRemaining}</div>
-                                <div class="library-stat-label">Days Left</div>
+                                <div class="library-stat-value">${expiryDisplay}</div>
+                                <div class="library-stat-label">Expires</div>
                             </div>
                             <div class="library-stat">
                                 <div class="library-stat-value">${file.accessCount}</div>
                                 <div class="library-stat-label">Views</div>
                             </div>
                         </div>
-                        <button class="library-copy-btn" onclick="copyLibraryUrl('${file.url}', this)">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
+                        <div class="library-actions">
+                            <button class="library-copy-btn" onclick="copyLibraryUrl('${file.url}', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            ${archiveBtn}
+                            <button class="library-action-btn delete" onclick="deleteFile('${file.slug}', this)" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function archiveFile(slug, btn) {
+            if (!confirm('Archive this file? It will no longer be viewable via its URL.')) return;
+
+            btn.disabled = true;
+            fetch(`/api/archive/${encodeURIComponent(slug)}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadRecentFiles();
+                    } else {
+                        alert(data.error || 'Failed to archive file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error archiving file');
+                    btn.disabled = false;
+                });
+        }
+
+        function unarchiveFile(slug, btn) {
+            btn.disabled = true;
+            fetch(`/api/unarchive/${encodeURIComponent(slug)}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadRecentFiles();
+                    } else {
+                        alert(data.error || 'Failed to unarchive file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error unarchiving file');
+                    btn.disabled = false;
+                });
+        }
+
+        function deleteFile(slug, btn) {
+            if (!confirm('Permanently delete this file? This cannot be undone.')) return;
+
+            btn.disabled = true;
+            fetch(`/api/file/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadRecentFiles();
+                    } else {
+                        alert(data.error || 'Failed to delete file');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    alert('Error deleting file');
+                    btn.disabled = false;
+                });
         }
         
         function copyLibraryUrl(url, buttonElement) {

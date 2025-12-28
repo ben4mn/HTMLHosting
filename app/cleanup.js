@@ -72,13 +72,16 @@ async function getStorageStats() {
     
     return new Promise((resolve, reject) => {
       db.all(`
-        SELECT 
+        SELECT
           COUNT(*) as total_files,
           SUM(file_size) as total_size,
-          COUNT(CASE WHEN expiry_time > datetime('now') THEN 1 END) as active_files,
-          SUM(CASE WHEN expiry_time > datetime('now') THEN file_size ELSE 0 END) as active_size,
-          COUNT(CASE WHEN expiry_time <= datetime('now') THEN 1 END) as expired_files,
-          SUM(CASE WHEN expiry_time <= datetime('now') THEN file_size ELSE 0 END) as expired_size
+          COUNT(CASE WHEN expiry_time IS NULL OR expiry_time > datetime('now') THEN 1 END) as active_files,
+          SUM(CASE WHEN expiry_time IS NULL OR expiry_time > datetime('now') THEN file_size ELSE 0 END) as active_size,
+          COUNT(CASE WHEN expiry_time IS NULL THEN 1 END) as permanent_files,
+          SUM(CASE WHEN expiry_time IS NULL THEN file_size ELSE 0 END) as permanent_size,
+          COUNT(CASE WHEN expiry_time IS NOT NULL AND expiry_time <= datetime('now') THEN 1 END) as expired_files,
+          SUM(CASE WHEN expiry_time IS NOT NULL AND expiry_time <= datetime('now') THEN file_size ELSE 0 END) as expired_size,
+          COUNT(CASE WHEN archived = 1 THEN 1 END) as archived_files
         FROM hosted_files
       `, [], (err, rows) => {
         if (err) {
@@ -117,6 +120,9 @@ async function main() {
         console.log(`Total Size: ${formatFileSize(stats.total_size || 0)}`);
         console.log(`Active Files: ${stats.active_files}`);
         console.log(`Active Size: ${formatFileSize(stats.active_size || 0)}`);
+        console.log(`Permanent Files: ${stats.permanent_files}`);
+        console.log(`Permanent Size: ${formatFileSize(stats.permanent_size || 0)}`);
+        console.log(`Archived Files: ${stats.archived_files}`);
         console.log(`Expired Files: ${stats.expired_files}`);
         console.log(`Expired Size: ${formatFileSize(stats.expired_size || 0)}`);
       } catch (error) {
