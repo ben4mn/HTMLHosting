@@ -78,7 +78,7 @@ const upload = multer({
 
 // Helper function to create upload directory
 function createUploadDirectory(uploadId) {
-  const uploadDir = path.join(__dirname, '../../uploads', uploadId);
+  const uploadDir = path.join(__dirname, '../uploads', uploadId);
   
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

@@ -484,44 +484,32 @@
 
         .features {
             background: #0f172a;
-            padding: 2rem;
+            padding: 1.5rem 2rem;
             border-top: 1px solid #334155;
         }
 
-        .features h3 {
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            color: #f1f5f9;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+        .feature-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem 1.5rem;
         }
 
         .feature-item {
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .feature-title {
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: bold;
-            color: #10b981;
-            margin-bottom: 0.5rem;
-        }
-
-        .feature-desc {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: #94a3b8;
             font-size: 0.9rem;
+        }
+
+        .feature-item::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
         /* Upload Options Styles */
@@ -871,28 +859,12 @@
         </div>
         
         <div class="features">
-            <h3>Features</h3>
-            <div class="feature-grid">
-                <div class="feature-item">
-                    <div class="feature-icon">⚡</div>
-                    <div class="feature-title">Fast Upload</div>
-                    <div class="feature-desc">Quick and efficient file upload with progress tracking</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🔒</div>
-                    <div class="feature-title">Secure</div>
-                    <div class="feature-desc">Rate limiting and file validation for security</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">⏰</div>
-                    <div class="feature-title">Temporary</div>
-                    <div class="feature-desc">Files automatically expire after 30 days</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📊</div>
-                    <div class="feature-title">Analytics</div>
-                    <div class="feature-desc">Track views and access statistics</div>
-                </div>
+            <div class="feature-list">
+                <div class="feature-item">10MB max file size</div>
+                <div class="feature-item">Custom URLs</div>
+                <div class="feature-item">Flexible expiration</div>
+                <div class="feature-item">View analytics</div>
+                <div class="feature-item">Rate limited</div>
             </div>
         </div>
     </div>
