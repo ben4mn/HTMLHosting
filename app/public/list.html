@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Files - HTML Hosting</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,10 +14,10 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #f1f5f9;
+            background: #0f172a;
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,52 +25,56 @@
         .container {
             max-width: 1000px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: #1e293b;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             overflow: hidden;
+            border: 1px solid #334155;
         }
 
         .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
+            background: #1e293b;
+            color: #f1f5f9;
             padding: 1.5rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #334155;
         }
 
         .header h1 {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 1.8rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            color: #10b981;
         }
 
         .header h1 i {
-            color: #667eea;
+            color: #10b981;
         }
 
         .back-link {
-            color: white;
+            color: #f1f5f9;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 8px 16px;
-            background: rgba(255,255,255,0.1);
+            background: #334155;
             border-radius: 6px;
-            transition: background 0.3s;
+            transition: all 150ms ease;
         }
 
         .back-link:hover {
-            background: rgba(255,255,255,0.2);
+            background: #475569;
         }
 
         .search-section {
             padding: 1.5rem 2rem;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e3e8ff;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
         }
 
         .search-wrapper {
@@ -88,25 +93,33 @@
             left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: #7f8c8d;
+            color: #94a3b8;
         }
 
         .search-input {
             width: 100%;
             padding: 12px 12px 12px 40px;
-            border: 1px solid #ddd;
+            border: 1px solid #334155;
             border-radius: 8px;
             font-size: 1rem;
-            transition: border-color 0.3s;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #1e293b;
+            color: #f1f5f9;
+            transition: border-color 150ms ease;
         }
 
         .search-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #10b981;
+        }
+
+        .search-input::placeholder {
+            color: #94a3b8;
         }
 
         .search-stats {
-            color: #7f8c8d;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #94a3b8;
             font-size: 0.9rem;
         }
 
@@ -117,36 +130,41 @@
         .loading, .empty {
             text-align: center;
             padding: 3rem;
-            color: #7f8c8d;
+            color: #94a3b8;
         }
 
         .loading i, .empty i {
             font-size: 2rem;
             margin-bottom: 1rem;
             display: block;
+            color: #10b981;
+        }
+
+        .empty i {
+            color: #334155;
         }
 
         .file-item {
-            background: #f8f9fa;
-            border: 1px solid #e3e8ff;
-            border-radius: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
             padding: 1.25rem;
             margin-bottom: 1rem;
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 1rem;
             align-items: start;
-            transition: all 0.3s ease;
+            transition: all 150ms ease;
         }
 
         .file-item:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
         }
 
         .file-item.archived {
-            opacity: 0.7;
-            background: #fafafa;
+            opacity: 0.6;
+            background: #1e293b;
         }
 
         .file-info {
@@ -158,7 +176,7 @@
         .file-name {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #2c3e50;
+            color: #f1f5f9;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -166,7 +184,7 @@
         }
 
         .file-description {
-            color: #7f8c8d;
+            color: #94a3b8;
             font-size: 0.95rem;
         }
 
@@ -175,7 +193,7 @@
             gap: 1.5rem;
             flex-wrap: wrap;
             font-size: 0.85rem;
-            color: #95a5a6;
+            color: #94a3b8;
         }
 
         .file-meta span {
@@ -185,16 +203,16 @@
         }
 
         .file-meta i {
-            color: #667eea;
+            color: #10b981;
         }
 
         .file-url {
-            font-family: monospace;
-            background: white;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #1e293b;
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.85rem;
-            color: #667eea;
+            color: #0ea5e9;
         }
 
         .file-actions {
@@ -208,7 +226,7 @@
             display: flex;
             gap: 1rem;
             font-size: 0.85rem;
-            color: #7f8c8d;
+            color: #94a3b8;
             text-align: center;
         }
 
@@ -219,8 +237,9 @@
         }
 
         .stat-value {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-weight: 600;
-            color: #2c3e50;
+            color: #f1f5f9;
         }
 
         .stat-label {
@@ -230,15 +249,15 @@
         }
 
         .days-remaining {
-            color: #27ae60;
+            color: #10b981;
         }
 
         .days-remaining.warning {
-            color: #f39c12;
+            color: #f59e0b;
         }
 
         .days-remaining.danger {
-            color: #e74c3c;
+            color: #ef4444;
         }
 
         .action-buttons {
@@ -248,61 +267,63 @@
 
         .action-btn {
             background: transparent;
-            border: 1px solid #ddd;
+            border: 1px solid #334155;
             padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.85rem;
-            transition: all 0.3s ease;
+            transition: all 150ms ease;
             display: flex;
             align-items: center;
             gap: 0.35rem;
+            color: #94a3b8;
         }
 
         .action-btn:hover {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .action-btn.copy {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+            background: #10b981;
+            color: #0f172a;
+            border-color: #10b981;
+            font-weight: 600;
         }
 
         .action-btn.copy:hover {
-            background: #5a6fd8;
+            background: #059669;
         }
 
         .action-btn.archive {
-            color: #f39c12;
-            border-color: #f39c12;
+            color: #f59e0b;
+            border-color: #f59e0b;
         }
 
         .action-btn.archive:hover {
-            background: #fef9e7;
+            background: rgba(245, 158, 11, 0.1);
         }
 
         .action-btn.unarchive {
-            color: #27ae60;
-            border-color: #27ae60;
+            color: #10b981;
+            border-color: #10b981;
         }
 
         .action-btn.unarchive:hover {
-            background: #e8f8f0;
+            background: rgba(16, 185, 129, 0.1);
         }
 
         .action-btn.delete {
-            color: #e74c3c;
-            border-color: #e74c3c;
+            color: #ef4444;
+            border-color: #ef4444;
         }
 
         .action-btn.delete:hover {
-            background: #fdedec;
+            background: rgba(239, 68, 68, 0.1);
         }
 
         .archived-badge {
-            background: #f39c12;
-            color: white;
+            background: #f59e0b;
+            color: #0f172a;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.7rem;
@@ -311,8 +332,8 @@
         }
 
         .permanent-badge {
-            background: #27ae60;
-            color: white;
+            background: #10b981;
+            color: #0f172a;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.7rem;
@@ -323,7 +344,7 @@
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
-                border-radius: 10px;
+                border-radius: 8px;
             }
 
             .header {
