@@ -13,77 +13,82 @@ function getErrorPage(code, title, message) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Error - HTML Hosting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #f1f5f9;
+            background: #0f172a;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .error-container {
-            background: white;
+            background: #1e293b;
             padding: 3rem;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             text-align: center;
             max-width: 500px;
             width: 90%;
+            border: 1px solid #334155;
         }
-        
+
         .error-code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 4rem;
             font-weight: bold;
-            color: #e74c3c;
+            color: #ef4444;
             margin-bottom: 1rem;
         }
-        
+
         .error-title {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 1.5rem;
             margin-bottom: 1rem;
-            color: #2c3e50;
+            color: #f1f5f9;
         }
-        
+
         .error-message {
-            color: #7f8c8d;
+            color: #94a3b8;
             margin-bottom: 2rem;
             font-size: 1.1rem;
         }
-        
+
         .back-link {
             display: inline-block;
-            background: #667eea;
-            color: white;
+            background: #10b981;
+            color: #0f172a;
             text-decoration: none;
             padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: background 0.3s ease;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 150ms ease;
         }
-        
+
         .back-link:hover {
-            background: #5a6fd8;
+            background: #059669;
+            transform: translateY(-1px);
         }
-        
+
         @media (max-width: 600px) {
             .error-container {
                 padding: 2rem;
             }
-            
+
             .error-code {
                 font-size: 3rem;
             }
-            
+
             .error-title {
                 font-size: 1.3rem;
             }
