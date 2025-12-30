@@ -54,7 +54,39 @@ function initDatabase() {
         db.run('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
         db.run('CREATE INDEX IF NOT EXISTS idx_upload_ip ON hosted_files(upload_ip)');
         db.run('CREATE INDEX IF NOT EXISTS idx_archived ON hosted_files(archived)');
-        
+
+        // Migration: Add new columns for ZIP upload support
+        db.all("PRAGMA table_info(hosted_files)", [], (err, columns) => {
+          if (err) {
+            console.error('Error checking table schema:', err);
+            return;
+          }
+
+          const columnNames = columns.map(col => col.name);
+
+          // Add upload_type column if it doesn't exist
+          if (!columnNames.includes('upload_type')) {
+            db.run('ALTER TABLE hosted_files ADD COLUMN upload_type TEXT DEFAULT "html"', (err) => {
+              if (err) {
+                console.error('Error adding upload_type column:', err);
+              } else {
+                console.log('Added upload_type column');
+              }
+            });
+          }
+
+          // Add file_count column if it doesn't exist
+          if (!columnNames.includes('file_count')) {
+            db.run('ALTER TABLE hosted_files ADD COLUMN file_count INTEGER DEFAULT 1', (err) => {
+              if (err) {
+                console.error('Error adding file_count column:', err);
+              } else {
+                console.log('Added file_count column');
+              }
+            });
+          }
+        });
+
         console.log('Database initialized successfully');
         resolve();
       });
@@ -70,8 +102,8 @@ function insertFile(fileData) {
   return new Promise((resolve, reject) => {
     const stmt = db.prepare(`
       INSERT INTO hosted_files
-      (id, slug, filename, original_name, description, expiry_time, file_path, file_size, upload_ip, user_agent)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, slug, filename, original_name, description, expiry_time, file_path, file_size, upload_ip, user_agent, upload_type, file_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run([
@@ -84,7 +116,9 @@ function insertFile(fileData) {
       fileData.file_path,
       fileData.file_size,
       fileData.upload_ip,
-      fileData.user_agent
+      fileData.user_agent,
+      fileData.upload_type || 'html',
+      fileData.file_count || 1
     ], function(err) {
       if (err) {
         reject(err);

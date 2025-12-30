@@ -3,9 +3,153 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const AdmZip = require('adm-zip');
 const { insertFile, checkSlugExists, getAllFiles, archiveFile, unarchiveFile, deleteFile } = require('../database');
 
 const router = express.Router();
+
+// Allowed file types for ZIP projects
+const ALLOWED_EXTENSIONS = [
+  // Web essentials
+  '.html', '.htm', '.css', '.js', '.mjs',
+  // Images
+  '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp',
+  // Fonts
+  '.woff', '.woff2', '.ttf', '.eot', '.otf',
+  // Data files
+  '.json', '.xml', '.txt', '.md', '.csv',
+  // Media
+  '.mp3', '.mp4', '.webm', '.ogg', '.wav',
+  // Other web assets
+  '.map', '.webmanifest', '.manifest'
+];
+
+// Dangerous file types to block
+const BLOCKED_EXTENSIONS = [
+  // Executables
+  '.exe', '.dll', '.bat', '.cmd', '.sh', '.ps1', '.msi',
+  // Server-side scripts
+  '.php', '.py', '.rb', '.pl', '.cgi', '.asp', '.aspx', '.jsp',
+  // Java
+  '.jar', '.class', '.war',
+  // Config files that could leak secrets
+  '.htaccess', '.htpasswd', '.env', '.config', '.ini',
+  // Database files
+  '.sql', '.db', '.sqlite', '.mdb',
+  // Other dangerous
+  '.pem', '.key', '.crt', '.pfx'
+];
+
+// Check if file type is allowed
+function isAllowedFileType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  return ALLOWED_EXTENSIONS.includes(ext) && !BLOCKED_EXTENSIONS.includes(ext);
+}
+
+// Check if file type is blocked
+function isBlockedFileType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  return BLOCKED_EXTENSIONS.includes(ext);
+}
+
+// Check if path is safe (no traversal)
+function isPathSafe(entryName) {
+  const normalized = entryName.replace(/\\/g, '/');
+
+  // Block absolute paths
+  if (normalized.startsWith('/')) return false;
+
+  // Block path traversal
+  if (normalized.includes('../') || normalized.includes('..\\')) return false;
+
+  // Block hidden files/directories (starting with .)
+  const parts = normalized.split('/');
+  for (const part of parts) {
+    if (part.startsWith('.') && part !== '.' && part.length > 1) return false;
+  }
+
+  return true;
+}
+
+// Validate and extract ZIP file
+function validateAndExtractZip(buffer, uploadDir) {
+  const zip = new AdmZip(buffer);
+  const entries = zip.getEntries();
+
+  const result = {
+    valid: true,
+    hasIndexHtml: false,
+    fileCount: 0,
+    totalSize: 0,
+    errors: [],
+    warnings: [],
+    files: []
+  };
+
+  // Pre-extraction validation
+  for (const entry of entries) {
+    const entryName = entry.entryName;
+
+    // Skip directories
+    if (entry.isDirectory) continue;
+
+    result.fileCount++;
+    result.totalSize += entry.header.size;
+
+    // Check for index.html at root
+    if (entryName.toLowerCase() === 'index.html') {
+      result.hasIndexHtml = true;
+    }
+
+    // Security: Path traversal check
+    if (!isPathSafe(entryName)) {
+      result.errors.push(`Invalid path: ${entryName}`);
+      result.valid = false;
+      continue;
+    }
+
+    // Security: Blocked file types
+    if (isBlockedFileType(entryName)) {
+      result.errors.push(`Blocked file type: ${entryName}`);
+      result.valid = false;
+      continue;
+    }
+
+    // Warning for non-standard file types
+    if (!isAllowedFileType(entryName)) {
+      result.warnings.push(`Non-standard file type: ${entryName}`);
+    }
+
+    result.files.push({
+      name: entryName,
+      size: entry.header.size
+    });
+  }
+
+  // Must have index.html at root
+  if (!result.hasIndexHtml) {
+    result.errors.push('ZIP must contain index.html at the root level');
+    result.valid = false;
+  }
+
+  // Total size check (50MB limit)
+  if (result.totalSize > 50 * 1024 * 1024) {
+    result.errors.push('Total extracted size exceeds 50MB limit');
+    result.valid = false;
+  }
+
+  // Extract if valid
+  if (result.valid) {
+    try {
+      zip.extractAllTo(uploadDir, true);
+    } catch (error) {
+      result.errors.push(`Extraction failed: ${error.message}`);
+      result.valid = false;
+    }
+  }
+
+  return result;
+}
 
 // Generate a short random slug (8 characters)
 function generateShortSlug() {
@@ -58,20 +202,28 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB limit for ZIP files
     files: 1
   },
   fileFilter: (req, file, cb) => {
-    // Only allow HTML files
-    const allowedMimes = ['text/html'];
-    const allowedExtensions = ['.html', '.htm'];
-    
     const ext = path.extname(file.originalname).toLowerCase();
-    
-    if (allowedMimes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
+
+    // Allow HTML files
+    const htmlMimes = ['text/html'];
+    const htmlExts = ['.html', '.htm'];
+
+    // Allow ZIP files
+    const zipMimes = ['application/zip', 'application/x-zip-compressed', 'application/x-zip', 'application/octet-stream'];
+    const zipExts = ['.zip'];
+
+    if (htmlMimes.includes(file.mimetype) || htmlExts.includes(ext)) {
+      req.uploadType = 'html';
+      cb(null, true);
+    } else if (zipMimes.includes(file.mimetype) || zipExts.includes(ext)) {
+      req.uploadType = 'zip';
       cb(null, true);
     } else {
-      cb(new Error('Only HTML files (.html, .htm) are allowed'), false);
+      cb(new Error('Only HTML files (.html, .htm) or ZIP projects (.zip) are allowed'), false);
     }
   }
 });
@@ -101,6 +253,8 @@ function sanitizeFilename(filename) {
 
 // Upload endpoint
 router.post('/upload', upload.single('htmlfile'), async (req, res) => {
+  let uploadDir = null;
+
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -110,20 +264,12 @@ router.post('/upload', upload.single('htmlfile'), async (req, res) => {
     }
 
     const file = req.file;
-    const fileContent = file.buffer.toString('utf8');
-
-    // Validate HTML content
-    if (!validateHtmlContent(fileContent)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid HTML content'
-      });
-    }
+    const uploadType = req.uploadType || 'html';
 
     // Get optional fields from request body
     const { customSlug, description, duration } = req.body;
 
-    // Determine slug
+    // Determine slug first (before any file operations)
     let slug;
     if (customSlug && customSlug.trim()) {
       slug = customSlug.trim().toLowerCase();
@@ -170,11 +316,56 @@ router.post('/upload', upload.single('htmlfile'), async (req, res) => {
 
     // Generate unique ID and create directory
     const uploadId = uuidv4();
-    const uploadDir = createUploadDirectory(uploadId);
-    const filePath = path.join(uploadDir, 'index.html');
+    uploadDir = createUploadDirectory(uploadId);
+    const indexPath = path.join(uploadDir, 'index.html');
 
-    // Write file to disk
-    fs.writeFileSync(filePath, fileContent, 'utf8');
+    let fileCount = 1;
+    let totalSize = file.size;
+
+    if (uploadType === 'zip') {
+      // ZIP file processing
+      const validationResult = validateAndExtractZip(file.buffer, uploadDir);
+
+      if (!validationResult.valid) {
+        // Cleanup and return error
+        fs.rmSync(uploadDir, { recursive: true, force: true });
+        return res.status(400).json({
+          success: false,
+          error: validationResult.errors.join('; ')
+        });
+      }
+
+      fileCount = validationResult.fileCount;
+      totalSize = validationResult.totalSize;
+
+      // Log warnings if any
+      if (validationResult.warnings.length > 0) {
+        console.log(`ZIP upload warnings for ${slug}: ${validationResult.warnings.join(', ')}`);
+      }
+
+    } else {
+      // HTML file processing (existing logic)
+      const fileContent = file.buffer.toString('utf8');
+
+      if (!validateHtmlContent(fileContent)) {
+        fs.rmSync(uploadDir, { recursive: true, force: true });
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid HTML content'
+        });
+      }
+
+      // Apply 10MB limit for single HTML files
+      if (file.size > 10 * 1024 * 1024) {
+        fs.rmSync(uploadDir, { recursive: true, force: true });
+        return res.status(400).json({
+          success: false,
+          error: 'HTML file size exceeds 10MB limit'
+        });
+      }
+
+      fs.writeFileSync(indexPath, fileContent, 'utf8');
+    }
 
     // Calculate expiry time based on duration
     const expiryTime = calculateExpiryTime(duration || '30days');
@@ -191,10 +382,12 @@ router.post('/upload', upload.single('htmlfile'), async (req, res) => {
       original_name: sanitizeFilename(file.originalname),
       description: description || '',
       expiry_time: expiryTime,
-      file_path: filePath,
-      file_size: file.size,
+      file_path: indexPath,
+      file_size: totalSize,
       upload_ip: clientIp,
-      user_agent: userAgent
+      user_agent: userAgent,
+      upload_type: uploadType,
+      file_count: fileCount
     };
 
     await insertFile(fileData);
@@ -210,38 +403,37 @@ router.post('/upload', upload.single('htmlfile'), async (req, res) => {
       url: shareableUrl,
       filename: file.originalname,
       description: description || '',
-      size: file.size,
+      size: totalSize,
       expiresAt: expiryTime,
-      permanent: expiryTime === null
+      permanent: expiryTime === null,
+      uploadType: uploadType,
+      fileCount: fileCount
     });
 
-    console.log(`File uploaded: ${slug} (${file.originalname}, ${file.size} bytes)`);
-    
+    console.log(`${uploadType.toUpperCase()} uploaded: ${slug} (${file.originalname}, ${fileCount} files, ${totalSize} bytes)`);
+
   } catch (error) {
     console.error('Upload error:', error);
-    
-    // Clean up file if it was created
-    if (error.uploadId) {
-      const uploadDir = path.join(__dirname, '../../uploads', error.uploadId);
-      if (fs.existsSync(uploadDir)) {
-        fs.rmSync(uploadDir, { recursive: true, force: true });
-      }
+
+    // Clean up directory if it was created
+    if (uploadDir && fs.existsSync(uploadDir)) {
+      fs.rmSync(uploadDir, { recursive: true, force: true });
     }
-    
-    if (error.message.includes('Only HTML files')) {
+
+    if (error.message && error.message.includes('Only HTML files')) {
       return res.status(400).json({
         success: false,
-        error: 'Only HTML files (.html, .htm) are allowed'
+        error: 'Only HTML files (.html, .htm) or ZIP projects (.zip) are allowed'
       });
     }
-    
+
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        error: 'File size exceeds 10MB limit'
+        error: 'File size exceeds 50MB limit'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Upload failed'
@@ -414,10 +606,10 @@ router.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        error: 'File size exceeds 10MB limit'
+        error: 'File size exceeds 50MB limit'
       });
     }
-    
+
     if (error.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({
         success: false,
@@ -425,7 +617,7 @@ router.use((error, req, res, next) => {
       });
     }
   }
-  
+
   next(error);
 });
 

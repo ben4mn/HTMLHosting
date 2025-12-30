@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTML Hosting - Upload Your Files</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -788,12 +789,12 @@
         <div class="upload-section">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
-                <div class="upload-text">Drag & drop your HTML file here</div>
+                <div class="upload-text">Drag & drop your HTML file or ZIP project</div>
                 <div class="upload-subtext">or click to browse files</div>
                 <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">Choose File</button>
             </div>
-            
-            <input type="file" id="fileInput" class="file-input" accept=".html,.htm" />
+
+            <input type="file" id="fileInput" class="file-input" accept=".html,.htm,.zip" />
 
             <!-- Upload Options (shown after file selection) -->
             <div class="upload-options" id="uploadOptions" style="display: none;">
@@ -860,11 +861,11 @@
         
         <div class="features">
             <div class="feature-list">
-                <div class="feature-item">10MB max file size</div>
+                <div class="feature-item">HTML or ZIP projects</div>
+                <div class="feature-item">50MB max for ZIP</div>
                 <div class="feature-item">Custom URLs</div>
                 <div class="feature-item">Flexible expiration</div>
                 <div class="feature-item">View analytics</div>
-                <div class="feature-item">Rate limited</div>
             </div>
         </div>
     </div>
@@ -963,15 +964,22 @@
         function handleFile(file) {
             console.log('Handling file:', file.name, 'Size:', file.size);
 
+            const fileName = file.name.toLowerCase();
+            const isHtml = fileName.endsWith('.html') || fileName.endsWith('.htm');
+            const isZip = fileName.endsWith('.zip');
+
             // Validate file type
-            if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
-                showError('Please select an HTML file (.html or .htm)');
+            if (!isHtml && !isZip) {
+                showError('Please select an HTML file (.html, .htm) or ZIP project (.zip)');
                 return;
             }
 
-            // Validate file size (10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                showError('File size must be less than 10MB');
+            // Validate file size (10MB for HTML, 50MB for ZIP)
+            const maxSize = isZip ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+            const maxSizeText = isZip ? '50MB' : '10MB';
+
+            if (file.size > maxSize) {
+                showError(`File size must be less than ${maxSizeText}`);
                 return;
             }
 
@@ -979,7 +987,10 @@
             selectedFile = file;
             uploadArea.style.display = 'none';
             uploadOptions.style.display = 'block';
-            document.getElementById('selectedFile').innerHTML = `<i class="fas fa-file-code"></i> ${file.name} (${formatFileSize(file.size)})`;
+
+            const icon = isZip ? 'fa-file-archive' : 'fa-file-code';
+            const typeLabel = isZip ? 'ZIP Project' : 'HTML File';
+            document.getElementById('selectedFile').innerHTML = `<i class="fas ${icon}"></i> ${file.name} (${formatFileSize(file.size)}) - ${typeLabel}`;
         }
 
         function cancelUpload() {

@@ -111,6 +111,148 @@ function isValidSlug(slug) {
   return /^[a-zA-Z0-9_-]+$/.test(slug) && slug.length >= 1 && slug.length <= 100;
 }
 
+// MIME type mapping for common web files
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.bmp': 'image/bmp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.map': 'application/json',
+  '.webmanifest': 'application/manifest+json'
+};
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+// Info endpoint - returns metadata about a file (must be before /:slug/* wildcard)
+router.get('/:slug/info', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    if (!isValidSlug(slug)) {
+      return res.status(404).json({
+        error: 'File not found'
+      });
+    }
+
+    const fileInfo = await getFileBySlug(slug);
+
+    if (!fileInfo) {
+      return res.status(404).json({
+        error: 'File not found'
+      });
+    }
+
+    // Return public metadata (don't expose sensitive info)
+    res.json({
+      id: fileInfo.id,
+      slug: fileInfo.slug,
+      original_name: fileInfo.original_name,
+      description: fileInfo.description,
+      upload_time: fileInfo.upload_time,
+      expiry_time: fileInfo.expiry_time,
+      permanent: fileInfo.expiry_time === null,
+      file_size: fileInfo.file_size,
+      access_count: fileInfo.access_count,
+      archived: !!fileInfo.archived
+    });
+
+  } catch (error) {
+    console.error('Info error:', error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Serve sub-path assets: /:slug/path/to/file.css
+router.get('/:slug/*', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const subPath = req.params[0]; // Everything after /:slug/
+
+    // Validate slug format
+    if (!isValidSlug(slug)) {
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    // Security: Prevent path traversal in subPath
+    if (subPath.includes('..') || subPath.startsWith('/')) {
+      return res.status(400).send(getErrorPage(400, '400 - Bad Request', 'Invalid file path.'));
+    }
+
+    // Get file info from database
+    const fileInfo = await getFileBySlug(slug);
+
+    if (!fileInfo) {
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    // Check if file is archived
+    if (fileInfo.archived) {
+      return res.status(410).send(getErrorPage(410, '410 - Content Archived', 'This content has been archived.'));
+    }
+
+    // Construct full file path
+    const uploadDir = path.dirname(fileInfo.file_path);
+    const requestedFile = path.join(uploadDir, subPath);
+
+    // Security: Ensure requested file is within upload directory
+    const normalizedUploadDir = path.resolve(uploadDir);
+    const normalizedRequestedFile = path.resolve(requestedFile);
+
+    if (!normalizedRequestedFile.startsWith(normalizedUploadDir + path.sep)) {
+      return res.status(403).send(getErrorPage(403, '403 - Forbidden', 'Access denied.'));
+    }
+
+    // Check if file exists and is not a directory
+    if (!fs.existsSync(requestedFile) || fs.statSync(requestedFile).isDirectory()) {
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    // Set appropriate headers
+    const mimeType = getMimeType(requestedFile);
+    res.set({
+      'Content-Type': mimeType,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'public, max-age=86400' // 24 hour cache for assets
+    });
+
+    // Serve the file
+    res.sendFile(normalizedRequestedFile);
+
+  } catch (error) {
+    console.error('Asset serve error:', error);
+    res.status(500).send(getErrorPage(500, '500 - Internal Server Error', 'An error occurred.'));
+  }
+});
+
 // View endpoint - serves HTML content
 router.get('/:slug', async (req, res) => {
   try {
@@ -193,46 +335,5 @@ async function checkExpiredFile(slug) {
     );
   });
 }
-
-// Info endpoint - returns metadata about a file
-router.get('/:slug/info', async (req, res) => {
-  try {
-    const slug = req.params.slug;
-
-    if (!isValidSlug(slug)) {
-      return res.status(404).json({
-        error: 'File not found'
-      });
-    }
-
-    const fileInfo = await getFileBySlug(slug);
-
-    if (!fileInfo) {
-      return res.status(404).json({
-        error: 'File not found'
-      });
-    }
-
-    // Return public metadata (don't expose sensitive info)
-    res.json({
-      id: fileInfo.id,
-      slug: fileInfo.slug,
-      original_name: fileInfo.original_name,
-      description: fileInfo.description,
-      upload_time: fileInfo.upload_time,
-      expiry_time: fileInfo.expiry_time,
-      permanent: fileInfo.expiry_time === null,
-      file_size: fileInfo.file_size,
-      access_count: fileInfo.access_count,
-      archived: !!fileInfo.archived
-    });
-
-  } catch (error) {
-    console.error('Info error:', error);
-    res.status(500).json({
-      error: 'Internal server error'
-    });
-  }
-});
 
 module.exports = router;
