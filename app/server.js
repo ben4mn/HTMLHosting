@@ -13,6 +13,9 @@ const viewRoutes = require('./routes/view');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (for correct IP detection behind nginx/cloudflare)
+app.set('trust proxy', 1);
+
 // Initialize database
 initDatabase().catch(err => {
   console.error('Failed to initialize database:', err);
