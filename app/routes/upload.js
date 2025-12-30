@@ -52,6 +52,17 @@ function isBlockedFileType(filename) {
   return BLOCKED_EXTENSIONS.includes(ext);
 }
 
+// Check if file is macOS metadata that should be skipped
+function isMacOSMetadata(entryName) {
+  const normalized = entryName.replace(/\\/g, '/');
+  // Skip __MACOSX folder and ._ resource fork files
+  if (normalized.startsWith('__MACOSX/') || normalized.includes('/__MACOSX/')) return true;
+  const filename = normalized.split('/').pop();
+  if (filename.startsWith('._')) return true;
+  if (filename === '.DS_Store') return true;
+  return false;
+}
+
 // Check if path is safe (no traversal)
 function isPathSafe(entryName) {
   const normalized = entryName.replace(/\\/g, '/');
@@ -61,12 +72,6 @@ function isPathSafe(entryName) {
 
   // Block path traversal
   if (normalized.includes('../') || normalized.includes('..\\')) return false;
-
-  // Block hidden files/directories (starting with .)
-  const parts = normalized.split('/');
-  for (const part of parts) {
-    if (part.startsWith('.') && part !== '.' && part.length > 1) return false;
-  }
 
   return true;
 }
@@ -92,6 +97,9 @@ function validateAndExtractZip(buffer, uploadDir) {
 
     // Skip directories
     if (entry.isDirectory) continue;
+
+    // Skip macOS metadata files (__MACOSX, ._, .DS_Store)
+    if (isMacOSMetadata(entryName)) continue;
 
     result.fileCount++;
     result.totalSize += entry.header.size;
