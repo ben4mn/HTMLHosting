@@ -91,6 +91,9 @@ function validateAndExtractZip(buffer, uploadDir) {
     files: []
   };
 
+  // Debug: log all entry names
+  console.log('ZIP entries:', entries.map(e => e.entryName));
+
   // Pre-extraction validation
   for (const entry of entries) {
     const entryName = entry.entryName;
@@ -99,14 +102,19 @@ function validateAndExtractZip(buffer, uploadDir) {
     if (entry.isDirectory) continue;
 
     // Skip macOS metadata files (__MACOSX, ._, .DS_Store)
-    if (isMacOSMetadata(entryName)) continue;
+    if (isMacOSMetadata(entryName)) {
+      console.log('Skipping macOS metadata:', entryName);
+      continue;
+    }
 
     result.fileCount++;
     result.totalSize += entry.header.size;
 
-    // Check for index.html at root
-    if (entryName.toLowerCase() === 'index.html') {
+    // Check for index.html at root OR in a single top-level folder
+    const lowerName = entryName.toLowerCase();
+    if (lowerName === 'index.html' || lowerName.match(/^[^/]+\/index\.html$/)) {
       result.hasIndexHtml = true;
+      console.log('Found index.html:', entryName);
     }
 
     // Security: Path traversal check
@@ -146,10 +154,54 @@ function validateAndExtractZip(buffer, uploadDir) {
     result.valid = false;
   }
 
+  // Detect if all files are in a single top-level folder
+  let commonPrefix = null;
+  for (const file of result.files) {
+    const parts = file.name.split('/');
+    if (parts.length > 1) {
+      const topFolder = parts[0] + '/';
+      if (commonPrefix === null) {
+        commonPrefix = topFolder;
+      } else if (commonPrefix !== topFolder) {
+        commonPrefix = null;
+        break;
+      }
+    } else {
+      // File at root level, no common prefix
+      commonPrefix = null;
+      break;
+    }
+  }
+
+  console.log('Common prefix detected:', commonPrefix);
+
   // Extract if valid
   if (result.valid) {
     try {
-      zip.extractAllTo(uploadDir, true);
+      if (commonPrefix) {
+        // Extract files stripping the common prefix (single top-level folder)
+        for (const entry of entries) {
+          if (entry.isDirectory) continue;
+          if (isMacOSMetadata(entry.entryName)) continue;
+
+          const entryName = entry.entryName;
+          if (entryName.startsWith(commonPrefix)) {
+            const newPath = entryName.substring(commonPrefix.length);
+            if (newPath) {
+              const targetPath = path.join(uploadDir, newPath);
+              const targetDir = path.dirname(targetPath);
+              if (!fs.existsSync(targetDir)) {
+                fs.mkdirSync(targetDir, { recursive: true });
+              }
+              fs.writeFileSync(targetPath, entry.getData());
+              console.log('Extracted (stripped prefix):', entryName, '->', newPath);
+            }
+          }
+        }
+      } else {
+        // Normal extraction
+        zip.extractAllTo(uploadDir, true);
+      }
     } catch (error) {
       result.errors.push(`Extraction failed: ${error.message}`);
       result.valid = false;
@@ -402,7 +454,7 @@ router.post('/upload', upload.single('htmlfile'), async (req, res) => {
 
     // Generate shareable URL
     const baseUrl = req.protocol + '://' + req.get('host');
-    const shareableUrl = `${baseUrl}/${slug}`;
+    const shareableUrl = `${baseUrl}/${slug}/`;
 
     res.json({
       success: true,
@@ -475,7 +527,7 @@ router.get('/recent', async (req, res) => {
         archived: !!file.archived,
         daysRemaining: daysRemaining,
         permanent: file.expiry_time === null,
-        url: `${baseUrl}/${file.slug}`
+        url: `${baseUrl}/${file.slug}/`
       };
     });
 
@@ -517,7 +569,7 @@ router.get('/files', async (req, res) => {
         archived: !!file.archived,
         daysRemaining: daysRemaining,
         permanent: file.expiry_time === null,
-        url: `${baseUrl}/${file.slug}`
+        url: `${baseUrl}/${file.slug}/`
       };
     });
 

@@ -191,6 +191,57 @@ router.get('/:slug/info', async (req, res) => {
   }
 });
 
+// Serve index.html for /:slug/ (with trailing slash)
+router.get('/:slug/', async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    if (!isValidSlug(slug)) {
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    const fileInfo = await getFileBySlug(slug);
+
+    if (!fileInfo) {
+      const expiredFile = await checkExpiredFile(slug);
+      if (expiredFile) {
+        return res.status(410).send(getErrorPage(410, '410 - Content Expired', 'This content has expired.'));
+      }
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    if (fileInfo.archived) {
+      return res.status(410).send(getErrorPage(410, '410 - Content Archived', 'This content has been archived.'));
+    }
+
+    if (!fs.existsSync(fileInfo.file_path)) {
+      console.error(`File not found on disk: ${fileInfo.file_path}`);
+      return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
+    }
+
+    try {
+      await incrementAccessCount(fileInfo.id);
+    } catch (err) {
+      console.error('Error incrementing access count:', err);
+    }
+
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'public, max-age=3600',
+      'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:; connect-src *; media-src * data: blob:; object-src 'none'; base-uri 'self';"
+    });
+
+    res.sendFile(path.resolve(fileInfo.file_path));
+    console.log(`File served: ${slug} (access count: ${fileInfo.access_count + 1})`);
+
+  } catch (error) {
+    console.error('View error:', error);
+    res.status(500).send(getErrorPage(500, '500 - Internal Server Error', 'An error occurred.'));
+  }
+});
+
 // Serve sub-path assets: /:slug/path/to/file.css
 router.get('/:slug/*', async (req, res) => {
   try {
@@ -262,6 +313,10 @@ router.get('/:slug', async (req, res) => {
     if (!isValidSlug(slug)) {
       return res.status(404).send(getErrorPage(404, '404 - Not Found', 'The requested file was not found.'));
     }
+
+    // Redirect to trailing slash for proper relative path resolution
+    // This ensures styles.css resolves to /slug/styles.css not /styles.css
+    return res.redirect(301, `/${slug}/`);
 
     // Get file info from database
     const fileInfo = await getFileBySlug(slug);
