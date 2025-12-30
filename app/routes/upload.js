@@ -91,9 +91,6 @@ function validateAndExtractZip(buffer, uploadDir) {
     files: []
   };
 
-  // Debug: log all entry names
-  console.log('ZIP entries:', entries.map(e => e.entryName));
-
   // Pre-extraction validation
   for (const entry of entries) {
     const entryName = entry.entryName;
@@ -102,10 +99,7 @@ function validateAndExtractZip(buffer, uploadDir) {
     if (entry.isDirectory) continue;
 
     // Skip macOS metadata files (__MACOSX, ._, .DS_Store)
-    if (isMacOSMetadata(entryName)) {
-      console.log('Skipping macOS metadata:', entryName);
-      continue;
-    }
+    if (isMacOSMetadata(entryName)) continue;
 
     result.fileCount++;
     result.totalSize += entry.header.size;
@@ -114,7 +108,6 @@ function validateAndExtractZip(buffer, uploadDir) {
     const lowerName = entryName.toLowerCase();
     if (lowerName === 'index.html' || lowerName.match(/^[^/]+\/index\.html$/)) {
       result.hasIndexHtml = true;
-      console.log('Found index.html:', entryName);
     }
 
     // Security: Path traversal check
@@ -173,7 +166,6 @@ function validateAndExtractZip(buffer, uploadDir) {
     }
   }
 
-  console.log('Common prefix detected:', commonPrefix);
 
   // Extract if valid
   if (result.valid) {
@@ -194,7 +186,6 @@ function validateAndExtractZip(buffer, uploadDir) {
                 fs.mkdirSync(targetDir, { recursive: true });
               }
               fs.writeFileSync(targetPath, entry.getData());
-              console.log('Extracted (stripped prefix):', entryName, '->', newPath);
             }
           }
         }
