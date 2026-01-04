@@ -14,84 +14,162 @@ let db;
 
 function initDatabase() {
   return new Promise((resolve, reject) => {
-    db = new sqlite3.Database(DB_PATH, (err) => {
+    db = new sqlite3.Database(DB_PATH, async (err) => {
       if (err) {
         console.error('Error opening database:', err);
         reject(err);
         return;
       }
-      
+
       console.log('Connected to SQLite database');
-      
-      // Create tables
-      db.serialize(() => {
-        db.run(`
-          CREATE TABLE IF NOT EXISTS hosted_files (
-            id TEXT PRIMARY KEY,
-            slug TEXT UNIQUE NOT NULL,
-            filename TEXT NOT NULL,
-            original_name TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            expiry_time DATETIME,
-            file_path TEXT NOT NULL,
-            file_size INTEGER NOT NULL,
-            access_count INTEGER DEFAULT 0,
-            archived INTEGER DEFAULT 0,
-            upload_ip TEXT,
-            user_agent TEXT
-          )
-        `, (err) => {
-          if (err) {
-            console.error('Error creating hosted_files table:', err);
-            reject(err);
-            return;
-          }
-        });
 
-        // Create indexes
-        db.run('CREATE INDEX IF NOT EXISTS idx_slug ON hosted_files(slug)');
-        db.run('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
-        db.run('CREATE INDEX IF NOT EXISTS idx_upload_ip ON hosted_files(upload_ip)');
-        db.run('CREATE INDEX IF NOT EXISTS idx_archived ON hosted_files(archived)');
-
-        // Migration: Add new columns for ZIP upload support
-        db.all("PRAGMA table_info(hosted_files)", [], (err, columns) => {
-          if (err) {
-            console.error('Error checking table schema:', err);
-            return;
-          }
-
-          const columnNames = columns.map(col => col.name);
-
-          // Add upload_type column if it doesn't exist
-          if (!columnNames.includes('upload_type')) {
-            db.run('ALTER TABLE hosted_files ADD COLUMN upload_type TEXT DEFAULT "html"', (err) => {
-              if (err) {
-                console.error('Error adding upload_type column:', err);
-              } else {
-                console.log('Added upload_type column');
-              }
-            });
-          }
-
-          // Add file_count column if it doesn't exist
-          if (!columnNames.includes('file_count')) {
-            db.run('ALTER TABLE hosted_files ADD COLUMN file_count INTEGER DEFAULT 1', (err) => {
-              if (err) {
-                console.error('Error adding file_count column:', err);
-              } else {
-                console.log('Added file_count column');
-              }
-            });
-          }
-        });
-
+      try {
+        await runMigrations();
         console.log('Database initialized successfully');
         resolve();
-      });
+      } catch (migrationErr) {
+        console.error('Migration error:', migrationErr);
+        reject(migrationErr);
+      }
     });
   });
+}
+
+// Helper to run a query as a promise
+function runQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
+}
+
+// Helper to get all rows as a promise
+function allQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+async function runMigrations() {
+  // Check if table exists
+  const tables = await allQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='hosted_files'");
+
+  if (tables.length === 0) {
+    // Create fresh table with correct schema
+    await runQuery(`
+      CREATE TABLE hosted_files (
+        id TEXT PRIMARY KEY,
+        slug TEXT UNIQUE NOT NULL,
+        filename TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expiry_time DATETIME,
+        file_path TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        access_count INTEGER DEFAULT 0,
+        archived INTEGER DEFAULT 0,
+        upload_ip TEXT,
+        user_agent TEXT,
+        upload_type TEXT DEFAULT 'html',
+        file_count INTEGER DEFAULT 1
+      )
+    `);
+
+    // Create indexes
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_slug ON hosted_files(slug)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_upload_ip ON hosted_files(upload_ip)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_archived ON hosted_files(archived)');
+
+    console.log('Created hosted_files table with correct schema');
+    return;
+  }
+
+  // Table exists - check if expiry_time has NOT NULL constraint
+  const columns = await allQuery("PRAGMA table_info(hosted_files)");
+  const expiryCol = columns.find(col => col.name === 'expiry_time');
+
+  if (expiryCol && expiryCol.notnull === 1) {
+    console.log('Migrating database: removing NOT NULL constraint from expiry_time...');
+
+    // SQLite doesn't support ALTER COLUMN, so we need to recreate the table
+    await runQuery('BEGIN TRANSACTION');
+
+    try {
+      // Create new table with correct schema
+      await runQuery(`
+        CREATE TABLE hosted_files_new (
+          id TEXT PRIMARY KEY,
+          slug TEXT UNIQUE NOT NULL,
+          filename TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expiry_time DATETIME,
+          file_path TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          access_count INTEGER DEFAULT 0,
+          archived INTEGER DEFAULT 0,
+          upload_ip TEXT,
+          user_agent TEXT,
+          upload_type TEXT DEFAULT 'html',
+          file_count INTEGER DEFAULT 1
+        )
+      `);
+
+      // Copy data from old table
+      await runQuery(`
+        INSERT INTO hosted_files_new
+        SELECT id, slug, filename, original_name, description, upload_time, expiry_time,
+               file_path, file_size, access_count, archived, upload_ip, user_agent,
+               COALESCE(upload_type, 'html'), COALESCE(file_count, 1)
+        FROM hosted_files
+      `);
+
+      // Drop old table
+      await runQuery('DROP TABLE hosted_files');
+
+      // Rename new table
+      await runQuery('ALTER TABLE hosted_files_new RENAME TO hosted_files');
+
+      // Recreate indexes
+      await runQuery('CREATE INDEX IF NOT EXISTS idx_slug ON hosted_files(slug)');
+      await runQuery('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
+      await runQuery('CREATE INDEX IF NOT EXISTS idx_upload_ip ON hosted_files(upload_ip)');
+      await runQuery('CREATE INDEX IF NOT EXISTS idx_archived ON hosted_files(archived)');
+
+      await runQuery('COMMIT');
+      console.log('Database migration completed successfully');
+    } catch (err) {
+      await runQuery('ROLLBACK');
+      throw err;
+    }
+  } else {
+    // Check for missing columns and add them
+    const columnNames = columns.map(col => col.name);
+
+    if (!columnNames.includes('upload_type')) {
+      await runQuery('ALTER TABLE hosted_files ADD COLUMN upload_type TEXT DEFAULT "html"');
+      console.log('Added upload_type column');
+    }
+
+    if (!columnNames.includes('file_count')) {
+      await runQuery('ALTER TABLE hosted_files ADD COLUMN file_count INTEGER DEFAULT 1');
+      console.log('Added file_count column');
+    }
+
+    // Ensure indexes exist
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_slug ON hosted_files(slug)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_upload_ip ON hosted_files(upload_ip)');
+    await runQuery('CREATE INDEX IF NOT EXISTS idx_archived ON hosted_files(archived)');
+  }
 }
 
 function getDatabase() {
