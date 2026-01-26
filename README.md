@@ -1,131 +1,60 @@
 # HTML Hosting Service
 
-A temporary HTML file hosting service for `hosting.zyroi.com`.
+A lightweight hosting service purpose-built for developers who frequently work with AI code generation. Upload HTML files and instantly get shareable URLs - perfect for quickly previewing AI-generated web pages, sharing prototypes with stakeholders, or testing responsive designs. The service handles automatic cleanup of old files and provides a simple API for programmatic uploads.
 
 ## Features
 
-- ✅ Upload HTML files up to 10MB
-- ✅ Automatic file expiration (30 days)
-- ✅ UUID-based file URLs
-- ✅ Rate limiting (10 uploads per 15 minutes per IP)
-- ✅ Drag & drop interface
-- ✅ View counter and analytics
-- ✅ Automatic cleanup of expired files
-- ✅ Responsive design
-- ✅ Security headers and validation
+- Instant shareable URLs for uploaded HTML files
+- Automatic file expiration and cleanup
+- Simple REST API for programmatic uploads
+- SQLite-backed file tracking
+- Docker-ready for self-hosting
 
-## Quick Start
+## Tech Stack
 
-### Local Development
+Node.js, Express, SQLite, Docker
 
-1. **Install dependencies:**
-   ```bash
-   cd app
-   npm install
-   ```
+## Getting Started
 
-2. **Start the server:**
-   ```bash
-   npm start
-   ```
+### Prerequisites
 
-3. **Open in browser:**
-   Navigate to `http://localhost:3000`
+- Node.js 18+
 
-### Docker Deployment
-
-1. **Build the image:**
-   ```bash
-   docker build -t html-hosting-app .
-   ```
-
-2. **Run the container:**
-   ```bash
-   docker run -d -p 3011:3000 \
-     --name html-hosting-container \
-     --restart unless-stopped \
-     -v $(pwd)/uploads:/app/uploads \
-     -v $(pwd)/database:/app/database \
-     html-hosting-app
-   ```
-
-## API Endpoints
-
-- `POST /api/upload` - Upload HTML file
-- `GET /view/{uuid}` - View uploaded file
-- `GET /view/{uuid}/info` - Get file metadata
-- `GET /health` - Health check
-
-## Maintenance
-
-### Cleanup expired files:
-```bash
-node cleanup.js
-```
-
-### Get storage statistics:
-```bash
-node cleanup.js stats
-```
-
-### Set up automated cleanup (cron):
-```bash
-# Daily cleanup at 2 AM
-0 2 * * * cd /path/to/html-hosting/app && node cleanup.js
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and modify as needed:
+### Installation
 
 ```bash
-cp .env.example .env
+git clone https://github.com/ben4mn/HTMLHosting.git
+cd HTMLHosting/app
+npm install
 ```
 
-## File Structure
+### Running
 
-```
-html-hosting/
-├── app/
-│   ├── server.js           # Main server file
-│   ├── database.js         # Database operations
-│   ├── cleanup.js          # Cleanup utility
-│   ├── package.json        # Dependencies
-│   ├── routes/
-│   │   ├── upload.js       # Upload endpoints
-│   │   └── view.js         # View endpoints
-│   ├── public/
-│   │   └── index.html      # Upload interface
-│   └── views/
-│       └── error.html      # Error page template
-├── uploads/                # File storage
-├── database/              # SQLite database
-└── Dockerfile             # Container configuration
+```bash
+# Start the server
+npm start
+
+# Development with auto-reload
+npm run dev
 ```
 
-## Security Features
+Access the application at http://localhost:3000
 
-- File type validation (HTML only)
-- File size limits (10MB max)
-- Rate limiting per IP address
-- XSS protection headers
-- CORS configuration
-- Content Security Policy
-- Automatic file expiration
+#### Docker Deployment
 
-## Database Schema
+```bash
+# Build the image
+docker build -t html-hosting-app .
 
-```sql
-CREATE TABLE hosted_files (
-  id TEXT PRIMARY KEY,              -- UUID
-  filename TEXT NOT NULL,           -- Always 'index.html'
-  original_name TEXT NOT NULL,      -- User's original filename
-  upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  expiry_time DATETIME NOT NULL,
-  file_path TEXT NOT NULL,
-  file_size INTEGER NOT NULL,
-  access_count INTEGER DEFAULT 0,
-  upload_ip TEXT,                   -- For rate limiting
-  user_agent TEXT                   -- For analytics
-);
+# Run the container
+docker run -d -p 3011:3000 \
+  --name html-hosting-container \
+  --restart unless-stopped \
+  -v $(pwd)/uploads:/app/uploads \
+  -v $(pwd)/database:/app/database \
+  html-hosting-app
 ```
+
+## License
+
+MIT
