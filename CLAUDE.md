@@ -26,8 +26,13 @@ HTMLHosting/
 │   ├── package.json          # Dependencies and scripts
 │   ├── .env.example          # Environment configuration template
 │   ├── routes/
-│   │   ├── upload.js         # Upload, list, archive, delete APIs
+│   │   ├── upload.js         # Upload, list, archive, delete APIs (web UI)
+│   │   ├── api-v2.js         # Authenticated JSON API for AI agents
 │   │   └── view.js           # GET /:slug - serve HTML content
+│   ├── middleware/
+│   │   └── auth.js           # API key authentication middleware
+│   ├── utils/
+│   │   └── validation.js     # Shared validation functions
 │   ├── public/
 │   │   ├── index.html        # Upload interface (single-page app)
 │   │   └── list.html         # Full file list with search
@@ -78,6 +83,8 @@ docker run -d -p 3011:3000 \
 
 ## API Endpoints
 
+### Web UI API (v1)
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/upload` | Upload HTML file (rate limited: 10/15min) |
@@ -91,6 +98,53 @@ docker run -d -p 3011:3000 \
 | GET | `/:slug/info` | Get file metadata (JSON) |
 | GET | `/list` | Full file list page with search |
 | GET | `/health` | Health check endpoint |
+
+### Programmatic API (v2) - For AI Agents
+
+Authenticated JSON API for programmatic access. **Full documentation available at `GET /api/v2`**.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v2` | No | API discovery - returns full documentation |
+| POST | `/api/v2/upload` | Yes | Create HTML page or ZIP project |
+| PUT | `/api/v2/upload/:slug` | Yes | Update existing page (owner only) |
+| GET | `/api/v2/file/:slug` | Yes | Get file metadata |
+| DELETE | `/api/v2/file/:slug` | Yes | Delete file (owner only) |
+| GET | `/api/v2/check-slug/:slug` | Yes | Check slug availability |
+
+**Authentication**: Include `X-API-Key: <key>` header or `Authorization: Bearer <key>`
+
+**Example - Upload HTML**:
+```bash
+curl -X POST https://hosting.zyroi.com/api/v2/upload \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"html": "<html><body>Hello</body></html>", "slug": "my-page"}'
+```
+
+**Example - Upload ZIP** (base64 encoded):
+```bash
+curl -X POST https://hosting.zyroi.com/api/v2/upload \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"zip": "BASE64_ENCODED_ZIP", "slug": "my-project"}'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "id": "uuid",
+  "slug": "my-page",
+  "url": "https://hosting.zyroi.com/my-page/",
+  "size": 1024,
+  "expiresAt": "2024-03-15T12:00:00.000Z",
+  "permanent": false,
+  "passwordProtected": false,
+  "uploadType": "html",
+  "fileCount": 1
+}
+```
 
 ## Database Schema
 
@@ -110,7 +164,12 @@ CREATE TABLE hosted_files (
   access_count INTEGER DEFAULT 0,
   archived INTEGER DEFAULT 0,    -- 1 if archived, 0 if active
   upload_ip TEXT,                -- Client IP for rate limiting
-  user_agent TEXT                -- For analytics
+  user_agent TEXT,               -- For analytics
+  upload_type TEXT DEFAULT 'html', -- 'html' or 'zip'
+  file_count INTEGER DEFAULT 1,  -- Number of files (for ZIP uploads)
+  password_hash TEXT,            -- bcrypt hash if password protected
+  password_hint TEXT,            -- Optional password hint
+  api_key_hash TEXT              -- SHA-256 hash of API key (for ownership)
 );
 ```
 
@@ -202,6 +261,9 @@ See `.env.example` for all options:
 | UPLOAD_RATE_LIMIT | 10 | Uploads per window |
 | UPLOAD_RATE_WINDOW | 900000 | Rate limit window (ms) |
 | ALLOWED_ORIGINS | * | CORS allowed origins |
+| API_KEYS | (none) | Comma-separated API keys for v2 API |
+| API_RATE_LIMIT | 100 | API v2 requests per window |
+| API_RATE_WINDOW | 900000 | API v2 rate limit window (ms) |
 
 ## Important Implementation Details
 

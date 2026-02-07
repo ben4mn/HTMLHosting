@@ -77,7 +77,10 @@ async function runMigrations() {
         upload_ip TEXT,
         user_agent TEXT,
         upload_type TEXT DEFAULT 'html',
-        file_count INTEGER DEFAULT 1
+        file_count INTEGER DEFAULT 1,
+        password_hash TEXT,
+        password_hint TEXT,
+        api_key_hash TEXT
       )
     `);
 
@@ -119,7 +122,9 @@ async function runMigrations() {
           upload_ip TEXT,
           user_agent TEXT,
           upload_type TEXT DEFAULT 'html',
-          file_count INTEGER DEFAULT 1
+          file_count INTEGER DEFAULT 1,
+          password_hash TEXT,
+          password_hint TEXT
         )
       `);
 
@@ -164,6 +169,21 @@ async function runMigrations() {
       console.log('Added file_count column');
     }
 
+    if (!columnNames.includes('password_hash')) {
+      await runQuery('ALTER TABLE hosted_files ADD COLUMN password_hash TEXT');
+      console.log('Added password_hash column');
+    }
+
+    if (!columnNames.includes('password_hint')) {
+      await runQuery('ALTER TABLE hosted_files ADD COLUMN password_hint TEXT');
+      console.log('Added password_hint column');
+    }
+
+    if (!columnNames.includes('api_key_hash')) {
+      await runQuery('ALTER TABLE hosted_files ADD COLUMN api_key_hash TEXT');
+      console.log('Added api_key_hash column');
+    }
+
     // Ensure indexes exist
     await runQuery('CREATE INDEX IF NOT EXISTS idx_slug ON hosted_files(slug)');
     await runQuery('CREATE INDEX IF NOT EXISTS idx_expiry_time ON hosted_files(expiry_time)');
@@ -180,8 +200,8 @@ function insertFile(fileData) {
   return new Promise((resolve, reject) => {
     const stmt = db.prepare(`
       INSERT INTO hosted_files
-      (id, slug, filename, original_name, description, expiry_time, file_path, file_size, upload_ip, user_agent, upload_type, file_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, slug, filename, original_name, description, expiry_time, file_path, file_size, upload_ip, user_agent, upload_type, file_count, password_hash, password_hint, api_key_hash)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run([
@@ -196,7 +216,10 @@ function insertFile(fileData) {
       fileData.upload_ip,
       fileData.user_agent,
       fileData.upload_type || 'html',
-      fileData.file_count || 1
+      fileData.file_count || 1,
+      fileData.password_hash || null,
+      fileData.password_hint || null,
+      fileData.api_key_hash || null
     ], function(err) {
       if (err) {
         reject(err);
@@ -421,17 +444,78 @@ function closeDatabase() {
   });
 }
 
+/**
+ * Get file by slug without expiry filter (for API updates)
+ */
+function getFileBySlugRaw(slug) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      'SELECT * FROM hosted_files WHERE slug = ?',
+      [slug],
+      (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(row);
+      }
+    );
+  });
+}
+
+/**
+ * Update file record (for API updates)
+ */
+function updateFile(slug, updateData) {
+  return new Promise((resolve, reject) => {
+    const stmt = db.prepare(`
+      UPDATE hosted_files SET
+        id = ?,
+        file_path = ?,
+        file_size = ?,
+        description = ?,
+        expiry_time = ?,
+        password_hash = ?,
+        upload_type = ?,
+        file_count = ?
+      WHERE slug = ?
+    `);
+
+    stmt.run([
+      updateData.id,
+      updateData.file_path,
+      updateData.file_size,
+      updateData.description,
+      updateData.expiry_time,
+      updateData.password_hash,
+      updateData.upload_type || 'html',
+      updateData.file_count || 1,
+      slug
+    ], function(err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve({ changes: this.changes });
+    });
+
+    stmt.finalize();
+  });
+}
+
 module.exports = {
   initDatabase,
   getDatabase,
   insertFile,
   getFile,
   getFileBySlug,
+  getFileBySlugRaw,
   checkSlugExists,
   getAllFiles,
   archiveFile,
   unarchiveFile,
   deleteFile,
+  updateFile,
   incrementAccessCount,
   getExpiredFiles,
   deleteExpiredFiles,

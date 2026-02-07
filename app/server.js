@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -9,6 +10,7 @@ require('dotenv').config();
 const { initDatabase } = require('./database');
 const uploadRoutes = require('./routes/upload');
 const viewRoutes = require('./routes/view');
+const apiV2Routes = require('./routes/api-v2');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,7 +30,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// Rate limiting
+// Rate limiting for uploads
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 uploads per window
@@ -40,11 +42,32 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiting for password attempts
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per slug per window
+  message: {
+    error: 'Too many password attempts, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  keyGenerator: (req) => {
+    const slug = req.params.slug || 'unknown';
+    const ip = req.ip || req.connection.remoteAddress;
+    return `${ip}:${slug}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+});
+
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? 'https://hosting.zyroi.com' : true,
-  credentials: false
+  credentials: true
 }));
+
+// Cookie parser for password auth
+app.use(cookieParser(process.env.COOKIE_SECRET || 'html-hosting-secret-key'));
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
@@ -55,6 +78,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API Routes
 app.use('/api', uploadLimiter, uploadRoutes);
+
+// API v2 Routes (authenticated, for AI agents)
+app.use('/api/v2', apiV2Routes);
 
 // Health check
 app.get('/health', (req, res) => {
